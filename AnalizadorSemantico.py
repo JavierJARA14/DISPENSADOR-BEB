@@ -48,9 +48,10 @@ def verificar_asignacion_arreglo(tabla_simbolos, identificador, numero_linea):
             if 'value' not in simbolo:
                 raise Exception(f"Error semántico en la linea {numero_linea}: La variable '{identificador}' no tiene un valor asignado")
         tipo = TipoValor(simbolo['value'])
-        if tipo != 'int' or simbolo['value'] :
+        if tipo != 'int':
             raise Exception(f"Error semántico en la linea {numero_linea}: la variable '{identificador}' no es un número entero positivo.")
         else:
+            simbolo['value'] = str(simbolo['value'])
             esNegativo = simbolo['value'].find('-')
             if esNegativo != -1:
                 raise Exception(f"Error semántico en la linea {numero_linea}: la variable '{identificador}' no es un número entero positivo.")
