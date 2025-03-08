@@ -22,8 +22,8 @@ reservadas = {
     'stg':'stg',
     'SMS':'SMS',
     'FUN':'FUN',
-    'True':'True',
-    'False':'False',
+    'TRUE':'TRUE',
+    'FALSE':'FALSE',
     'CO':'CO',
     'CA':'CA',
     'moveTo':'moveTo',
@@ -66,8 +66,8 @@ tokens = [
     'CADENA',
     'BEGIN',
     'END',
-    'True',
-    'False',
+    'TRUE',
+    'FALSE',
     'IMPORT',
     'FUN',
     'FROM',
@@ -162,12 +162,12 @@ def t_COMENTARIO(t):
     pass
 
 def t_REAL(t):
-    r'(\d+\.\d+|\.\d+)'
+    r'-?(\d+\.\d+|\.\d+)'
     t.value = float(t.value)
     return t
 
 def t_NUMERO(t):
-    r'\d+'
+    r'-?\d+'
     t.value = int(t.value)
     return t
 

@@ -168,10 +168,6 @@ def p_declaracion(p):
     """
     declaracion : tipo ID ASIGNACION expresion PUNTOCOMA
     """
-    if(p[4] == 'True'):
-        p[4] = True
-    elif(p[4] == 'False'):
-        p[4] = False
     if(tabla_simbolos.insertar_variable(p[2], p[1], p[4])):
         errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La variable "+p[2]+" ya ha sido declarada")
     else:
@@ -201,7 +197,13 @@ def p_declaracion_crearObj(p):
 
 #-----------------Arreglo------------------------------
 def p_declaracion_crearArreglo(p):
-    '''declaracion : ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA'''
+    '''declaracion : ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
+                   | ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
+    if p.slice[5].type == 'ID':
+        try:
+            verificar_asignacion_arreglo(tabla_simbolos, p[5], p.lineno(2)-linea)
+        except Exception as e:
+            errores_Sem_Desc.append(str(e))
 
 def p_ElementoArreglo(p):
     '''
@@ -212,8 +214,8 @@ def p_ElementoArreglo(p):
 
 def p_declaracion_AsignarArreglo(p):
     '''declaracion : elementoArr ASIGNACION expresion PUNTOCOMA
-                   | elementoArr ASIGNACION True PUNTOCOMA
-                   | elementoArr ASIGNACION False PUNTOCOMA'''
+                   | elementoArr ASIGNACION TRUE PUNTOCOMA
+                   | elementoArr ASIGNACION FALSE PUNTOCOMA'''
 
 # Tipos de datos
 def p_tipo(p):
@@ -310,8 +312,8 @@ def p_expresion(p):
               | NUMERO
               | REAL
               | CADENA
-              | True
-              | False
+              | TRUE
+              | FALSE
               | posicion
     """
     p[0] = p[1]
@@ -481,8 +483,8 @@ def p_AtrObjeto(p):
 
 def p_declaracion_asignarAtrObjeto(p):
     '''declaracion : atrObjeto ASIGNACION expresion PUNTOCOMA
-                    | atrObjeto ASIGNACION True PUNTOCOMA
-                    | atrObjeto ASIGNACION False PUNTOCOMA'''
+                    | atrObjeto ASIGNACION TRUE PUNTOCOMA
+                    | atrObjeto ASIGNACION FALSE PUNTOCOMA'''
 
 #-----------------Crear Funcion------------------------------
 parametros = []
@@ -891,6 +893,11 @@ def p_declaracion_crearArregloError6(t):
 def p_declaracion_crearArregloError7(t):
     '''declaracion : ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B'''
     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta punto y coma")
+#ERRORES SEMANTICOS ARREGLOS
+def p_declaracion_crearArregloError8(t):
+    '''declaracion : ID ASIGNACION CA CORCHETE_A RESTA NUMERO CORCHETE_B PUNTOCOMA
+                   | ID ASIGNACION CA CORCHETE_A REAL CORCHETE_B PUNTOCOMA'''
+    errores_Sinc_Desc.append("Error semántico en la linea "+str(t.lineno(2)-linea)+": Un arreglo sólo puede tener valores enteros positivos.")
     
 # Construir el analizador
 parser = yacc.yacc()
