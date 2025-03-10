@@ -168,14 +168,15 @@ def p_declaracion(p):
     """
     declaracion : tipo ID ASIGNACION expresion PUNTOCOMA
     """
-    if(tabla_simbolos.insertar_variable(p[2], p[1], p[4])):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La variable "+p[2]+" ya ha sido declarada")
+    # Verificar si la variable ya está declarada
+    if tabla_simbolos.insertar_variable(p[2], p[1], p[4]):
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La variable '{p[2]}' ya ha sido declarada")
     else:
         try:
             verificar_asignacion(tabla_simbolos, p[2], str(p[4]), p.lineno(2)-linea)
         except Exception as e:
             errores_Sem_Desc.append(str(e))
-    
+
     if len(p) == 6:
         p[0] = ('declaracion', p[1], p[2], p[4])
     else:
@@ -189,7 +190,6 @@ def p_declaracionsintipo(p):
         verificar_asignacion(tabla_simbolos, p[1], str(p[3]), p.lineno(2)-linea)
     except Exception as e:
         errores_Sem_Desc.append(str(e))
-  
 
 #-----------------Crear Objeto------------------------------
 def p_declaracion_crearObj(p):
@@ -616,16 +616,25 @@ def p_llamadafunc(p):
     """
     global valores
     funcion = tabla_simbolos.Buscar(p[1])
+    
     if(funcion == None):
         errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": La función "+p[1]+" no ha sido declarada")
     else:
         parame = funcion['parameters']
-        i = 0
-        for fila in parame:
-            tipo = TipoValor(str(valores[i]))
-            i+=1
-            if(tipo != fila[0]):
-                errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": Se esperaba un valor de tipo "+fila[0]+" no uno de tipo "+tipo)
+        cantidad_parametros = len(parame)
+        cantidad_argumentos = len(valores)
+
+        if cantidad_parametros != cantidad_argumentos:
+            errores_Sem_Desc.append(f"Error semántico en la linea {p.lineno(1)-linea}: La función '{p[1]}' espera {cantidad_parametros} argumentos, pero se proporcionaron {cantidad_argumentos}")
+
+        for i in range(min(cantidad_parametros, cantidad_argumentos)):
+            tipo_argumento = TipoValor(str(valores[i]))
+            tipo_parametro = parame[i][0]
+            if tipo_argumento != tipo_parametro:
+                errores_Sem_Desc.append(f"Error semántico en la linea {p.lineno(1)-linea}: Se esperaba un valor de tipo {tipo_parametro} pero se proporcionó uno de tipo {tipo_argumento}")
+
+        if cantidad_argumentos > cantidad_parametros:
+            errores_Sem_Desc.append(f"Error semántico en la linea {p.lineno(1)-linea}: La función '{p[1]}' no acepta más de {cantidad_parametros} argumentos.")
 
     valores = []
 
@@ -685,7 +694,7 @@ def p_posicion(p):
              | glassPosition PARENTESIS_A atrObjeto PARENTESIS_B
              | glassPosition PARENTESIS_A elementoArr PARENTESIS_B
     """
-    p[0] = 'True'
+    p[0] = 'TRUE'
 
 def p_posicionError1(p):
     """

@@ -21,6 +21,12 @@ class SymbolTable:
             return self.table[name]
         else:
             return None
+        
+    def get_value(self, name):
+        variable = self.Buscar(name)
+        if variable is not None:
+            return variable.get('value', None)
+        return None
 
     def display(self):
         print("Symbol Table:")
