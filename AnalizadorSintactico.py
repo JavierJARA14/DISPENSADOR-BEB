@@ -349,17 +349,31 @@ def p_operador(p):
              | OR
              | NOT
     """
-    p[0] = p[1]
+    if p[1] in ['AND', 'OR']:
+        if isinstance(p[2], bool) and isinstance(p[3], bool):
+            p[0] = p[1]
+        else:
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: Los operadores lógicos {p[1]} requieren booleanos")
+    elif p[1] == 'NOT':
+        if isinstance(p[2], bool):
+            p[0] = p[1]
+        else:
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: El operador lógico NOT requiere un valor booleano")
+    else:
+        if isinstance(p[2], (int, float)) and isinstance(p[3], (int, float)):
+            p[0] = p[1]
+        else:
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: Los operadores de comparación requieren operandos numéricos (int o float)")
 
 def p_si(p):
     """
     si : IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo
        | IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo ELSE bloque_codigo
     """
-    if(p[3] == True or p[3] == False):
+    if isinstance(p[3], bool):
         p[0] = p[1]
     else:
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": La condicion del if no es valida")
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La condición del IF debe ser un valor booleano")
 
 def p_siError1(p):
     """
@@ -390,15 +404,17 @@ def p_siError3(p):
                              "\nCondicion IF requiere mas argumentos"+
                              "\nSe espera: IF PARENTESIS_A expresion PARENTESIS_B BloqueCodigo"
                              +"\n                          ^^^^^^^^^")    
+
 def p_While(p):
     """
     mientras : WHILE PARENTESIS_A expresion PARENTESIS_B bloque_codigo
     """
-    if(p[3] == True or p[3] == False):
+    if isinstance(p[3], bool):
         p[0] = p[1]
     else:
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": La condicion del while no es valida")
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La condición del WHILE debe ser un valor booleano")
 
+    
 def p_WhileError1(p):
     """
     mientras : WHILE PARENTESIS_A expresion bloque_codigo
