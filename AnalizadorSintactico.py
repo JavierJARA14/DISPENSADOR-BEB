@@ -191,9 +191,9 @@ def p_declaracionsintipo(p):
         errores_Sem_Desc.append(str(e))
   
 
-#-----------------Crear Objeto------------------------------
+#-----------------Crear Slot------------------------------
 def p_declaracion_crearObj(p):
-    '''declaracion : ID ASIGNACION CO ID PUNTOCOMA'''
+    '''declaracion : ID ASIGNACION SLOT CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA'''
 
 #-----------------Arreglo------------------------------
 def p_declaracion_crearArreglo(p):
@@ -685,7 +685,7 @@ def p_posicion(p):
              | glassPosition PARENTESIS_A atrObjeto PARENTESIS_B
              | glassPosition PARENTESIS_A elementoArr PARENTESIS_B
     """
-    p[0] = 'True'
+    p[0] = 'TRUE'
 
 def p_posicionError1(p):
     """
@@ -845,24 +845,28 @@ def p_bloque_codigo_error2(t):
     
 #----------------------Error crear objeto-----------------------------
 def p_declaracion_crearObjError1(t):
-    '''declaracion : ASIGNACION CO ID PUNTOCOMA'''
+    '''declaracion : ASIGNACION SLOT NUMERO PUNTOCOMA'''
     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta el nombre del objeto")
     
 def p_declaracion_crearObjError2(t):
-    '''declaracion : ID CO ID PUNTOCOMA'''
+    '''declaracion : ID SLOT NUMERO PUNTOCOMA'''
     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta simbolo de asignación (=)")
 
 def p_declaracion_crearObjError3(t):
-    '''declaracion : ID ASIGNACION ID PUNTOCOMA'''
-    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta la palabra reserva 'CO'")
+    '''declaracion : ID ASIGNACION NUMERO PUNTOCOMA'''
+    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta la palabra reserva 'SLOT'")
     
 def p_declaracion_crearObjError4(t):
-    '''declaracion : ID ASIGNACION CO PUNTOCOMA'''
+    '''declaracion : ID ASIGNACION SLOT PUNTOCOMA'''
     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta el nombre del objeto")
 
 def p_declaracion_crearObjError5(t):
-    '''declaracion : ID ASIGNACION CO ID'''
+    '''declaracion : ID ASIGNACION SLOT NUMERO'''
     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta punto y coma")
+
+def p_declaracion_crearObjError5(t):
+    '''declaracion : ID ASIGNACION SLOT CORCHETE_A ID'''
+    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta cerrar corchetes.")
     
 
 #----------------------Error crear arreglo-----------------------------

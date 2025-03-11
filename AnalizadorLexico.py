@@ -24,7 +24,7 @@ reservadas = {
     'FUN':'FUN',
     'TRUE':'TRUE',
     'FALSE':'FALSE',
-    'CO':'CO',
+    'SLOT':'SLOT',
     'CA':'CA',
     'moveTo':'moveTo',
     'glassPosition':'glassPosition',
@@ -89,7 +89,7 @@ tokens = [
     'moveTo',
     'glassPosition',
     'gateOpen',
-    'CO',
+    'SLOT',
     'CA',
 ]
 

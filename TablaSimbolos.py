@@ -15,6 +15,9 @@ class SymbolTable:
         else:
             self.table[name] = {'type': 'funcion', 'parameters': parameters}
             return False
+        
+    def insertar_arreglo(self, name, size):
+        return none 
 
     def Buscar(self, name):
         if name in self.table:
