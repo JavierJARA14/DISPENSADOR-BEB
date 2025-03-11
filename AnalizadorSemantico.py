@@ -28,14 +28,19 @@ def verificar_asignacion(tabla_simbolos, identificador, valor, numero_linea):
     simbolo = tabla_simbolos.Buscar(identificador)
     if simbolo is None:
         raise Exception(f"Error semántico en la linea {numero_linea}: La variable '{identificador}' no ha sido declarada")
+    
     if simbolo['type'] == 'funcion':
-            tipo = 'funcion'
-    else:
-        tipo = TipoValor(simbolo['value'])
-        if 'value' not in simbolo:
-            raise Exception(f"Error semántico en la linea {numero_linea}: La variable '{identificador}' no tiene un valor asignado")
-    if tipo != simbolo['type']:
-        raise Exception(f"Error semántico en la linea {numero_linea}: Asignación de un valor de tipo {tipo} a una variable de tipo {simbolo['type']}")
+        raise Exception(f"Error semántico en la linea {numero_linea}: No se puede asignar un valor a una función '{identificador}'")
+    
+    if 'value' not in simbolo:
+        raise Exception(f"Error semántico en la linea {numero_linea}: La variable '{identificador}' no tiene un valor asignado")
+    
+    tipo_variable = simbolo['type']
+    tipo_valor = TipoValor(valor)
+    
+    if tipo_variable != tipo_valor:
+        raise Exception(f"Error semántico en la linea {numero_linea}: Asignación de un valor de tipo {tipo_valor} a una variable de tipo {tipo_variable}")
+
 
 def verificar_asignacion_arreglo(tabla_simbolos, identificador, numero_linea):
     simbolo = tabla_simbolos.Buscar(identificador)
@@ -55,3 +60,4 @@ def verificar_asignacion_arreglo(tabla_simbolos, identificador, numero_linea):
             esNegativo = simbolo['value'].find('-')
             if esNegativo != -1:
                 raise Exception(f"Error semántico en la linea {numero_linea}: la variable '{identificador}' no es un número entero positivo.")
+
