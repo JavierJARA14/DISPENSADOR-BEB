@@ -466,14 +466,43 @@ def p_for_init(p):
              | ID ASIGNACION expresion
     """
     if len(p) == 5:
-        p[0] = ('init', {'type': p[1], 'id': p[2], 'value': p[4]})
+        tipo_var = p[1]
+        id_var = p[2]
+        valor = p[4]
+        tipo_valor = TipoValor(str(valor))
+        
+        if tipo_var != tipo_valor:
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
+        else:
+            tabla_simbolos.Agregar(id_var, {'type': tipo_var, 'value': valor})
+        
+        p[0] = ('init', {'type': tipo_var, 'id': id_var, 'value': valor})
+    
     else:
-        p[0] = ('init', {'id': p[1], 'value': p[3]})
+        id_var = p[1]
+        valor = p[3]
+        simbolo = tabla_simbolos.Buscar(id_var)
+        
+        if simbolo is None:
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{id_var}' no ha sido declarada")
+        else:
+            tipo_var = simbolo['type']
+            tipo_valor = TipoValor(str(valor))
+            
+            if tipo_var != tipo_valor:
+                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
+        
+        p[0] = ('init', {'id': id_var, 'value': valor})
 
 def p_for_condicion(p):
     """
     for_condicion : expresion
     """
+    tipo_condicion = TipoValor(str(p[1]))
+    
+    if tipo_condicion != 'bool':
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La condición del 'for' debe ser booleana, pero se encontró {tipo_condicion}")
+    
     p[0] = ('condition', p[1])
 
 def p_for_actualizacion(p):
@@ -482,14 +511,26 @@ def p_for_actualizacion(p):
                        | ID MASMAS
                        | ID MENOSMENOS
     """
-    if len(p) == 4:
-        p[0] = ('update', {'id': p[1], 'operation': p[2], 'value': p[3]})
-    elif p[2] == 'i+':
-        p[0] = ('increment', {'id': p[1]})
-    elif p[2] == 'i-':
-        p[0] = ('decrement', {'id': p[1]})
+    simbolo = tabla_simbolos.Buscar(p[1])
 
+    if simbolo is None:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{p[1]}' no ha sido declarada")
+    else:
+        tipo_var = simbolo['type']
 
+        if len(p) == 4:
+            tipo_valor = TipoValor(str(p[3]))
+
+            if tipo_var != tipo_valor:
+                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{p[1]}' es de tipo '{tipo_var}' pero se intenta asignar un valor de tipo '{tipo_valor}'")
+            
+            p[0] = ('update', {'id': p[1], 'operation': p[2], 'value': p[3]})
+        
+        elif p[2] == '++' or p[2] == '--':
+            if tipo_var not in ['int', 'float']:
+                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{p[1]}' debe ser numérica para poder incrementar o decrementar")
+            
+            p[0] = ('increment' if p[2] == '++' else 'decrement', {'id': p[1]})
 
 #----fin bucle for ------------------------------------
 #-----------------Atributo de Objeto------------------------------
