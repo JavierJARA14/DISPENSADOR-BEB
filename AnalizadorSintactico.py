@@ -42,7 +42,7 @@ precedence = (
 # Programa principal
 def p_programa(p):
     """
-    programa : BEGIN bloque_codigo END
+    programa : gate_declaracion BEGIN bloque_codigo END
     """
     p[0] = ('programa', p[2])
 
@@ -195,6 +195,11 @@ def p_declaracionsintipo(p):
 #-----------------Crear Objeto------------------------------
 def p_declaracion_crearObj(p):
     '''declaracion : ID ASIGNACION CO ID PUNTOCOMA'''
+
+def p_gate_declaracion(p):
+    """
+    gate_declaracion  : GATE SETGATE CADENA PUNTOCOMA         
+    """
 
 def p_gate_instruccion(p):
     """

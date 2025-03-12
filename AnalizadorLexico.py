@@ -94,7 +94,8 @@ tokens = [
     'CA',
     'GATE',
     'BE_OPEN',
-    'BE_CLOSE'
+    'BE_CLOSE',
+    'SETGATE'
 ]
 
 t_ignore = ' \t'
@@ -145,6 +146,10 @@ def t_BE_OPEN(t):
 
 def t_BE_CLOSE(t):
     r'BE_CLOSE'
+    return t
+
+def t_SETGATE(t):
+    r'SETGATE'
     return t
 
 # Token para IF
