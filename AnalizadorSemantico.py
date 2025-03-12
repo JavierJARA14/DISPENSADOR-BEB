@@ -45,7 +45,7 @@ def verificar_asignacion_arreglo2(tabla_simbolos, identificador, valor, posicion
     simbolo = tabla_simbolos.Buscar(identificador)
     if simbolo is None:
         raise Exception(f"Error semántico en la linea {numero_linea}: La variable '{identificador}' no ha sido declarada")
-    if simbolo['size'] == None:
+    if 'size' not in simbolo:
         raise Exception(f"Error semántico en la linea {numero_linea}: La variable '{identificador}' no es un arreglo")
     else:
         size = simbolo['size']
