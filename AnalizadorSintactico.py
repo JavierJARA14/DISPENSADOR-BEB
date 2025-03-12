@@ -42,7 +42,7 @@ precedence = (
 # Programa principal
 def p_programa(p):
     """
-    programa : BEGIN bloque_codigo END
+    programa : gate_declaracion BEGIN bloque_codigo END
     """
     p[0] = ('programa', p[2])
 
@@ -69,6 +69,7 @@ def p_lista_declaraciones(p):
                         | abrir
                         | llamadafunc
                         | imprimir
+                        | gate_instruccion
     """
     if len(p) == 3:
         p[0] = p[1] + [p[2]]
@@ -194,6 +195,22 @@ def p_declaracionsintipo(p):
 #-----------------Crear Slot------------------------------
 def p_declaracion_crearObj(p):
     '''declaracion : ID ASIGNACION SLOT CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA'''
+
+def p_gate_declaracion(p):
+    """
+    gate_declaracion  : GATE SETGATE CADENA PUNTOCOMA         
+    """
+
+def p_gate_instruccion(p):
+    """
+    gate_instruccion  : GATE PUNTO gate_options PUNTOCOMA         
+    """
+    
+def p_gate_options(p):
+    """
+    gate_options  : BE_OPEN
+                  | BE_CLOSE           
+    """
 
 #-----------------Arreglo------------------------------
 def p_declaracion_crearArreglo(p):
