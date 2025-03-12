@@ -197,25 +197,39 @@ def p_declaracion_crearObj(p):
 
 #-----------------Arreglo------------------------------
 def p_declaracion_crearArreglo(p):
-    '''declaracion : ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
-                   | ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
-    if p.slice[5].type == 'ID':
-        try:
-            verificar_asignacion_arreglo(tabla_simbolos, p[5], p.lineno(2)-linea)
-        except Exception as e:
-            errores_Sem_Desc.append(str(e))
-
-def p_ElementoArreglo(p):
-    '''
-    elementoArr : ID CORCHETE_A expresion CORCHETE_B
-                | ID CORCHETE_A atrObjeto CORCHETE_B
-                | ID CORCHETE_A elementoArr CORCHETE_B
-    '''
+    '''declaracion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
+                   | tipo ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
+    if tabla_simbolos.declarar_arreglo(p[2], p[1], p[6]):
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: el arreglo '{p[2]}' ya ha sido declarado")
+    else:
+        if p.slice[5].type == 'ID':
+            try:
+                verificar_asignacion_arreglo(tabla_simbolos, p[5], p.lineno(2)-linea)
+            except Exception as e:
+                errores_Sem_Desc.append(str(e))
 
 def p_declaracion_AsignarArreglo(p):
-    '''declaracion : elementoArr ASIGNACION expresion PUNTOCOMA
-                   | elementoArr ASIGNACION TRUE PUNTOCOMA
-                   | elementoArr ASIGNACION FALSE PUNTOCOMA'''
+    '''declaracion : ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION expresion PUNTOCOMA
+                   | ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION TRUE PUNTOCOMA
+                   | ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION FALSE PUNTOCOMA
+                   | ID CORCHETE_A ID CORCHETE_B ASIGNACION expresion PUNTOCOMA
+                   | ID CORCHETE_A ID CORCHETE_B ASIGNACION TRUE PUNTOCOMA
+                   | ID CORCHETE_A ID CORCHETE_B ASIGNACION FALSE PUNTOCOMA
+    '''
+    if p.slice[3].type == 'ID':
+            try:
+                verificar_asignacion_arreglo(tabla_simbolos, p[3], p.lineno(2)-linea)
+                valor_id = valor_identificador(tabla_simbolos, p[3])
+                verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), valor_id, p.lineno(2)-linea)
+                tabla_simbolos.valor_arreglo(p[1], p[3], valor_id)
+            except Exception as e:
+                errores_Sem_Desc.append(str(e))
+    else:
+        try:
+            verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), p[3], p.lineno(2)-linea)
+            tabla_simbolos.valor_arreglo(p[1], p[3], p[6])
+        except Exception as e:
+            errores_Sem_Desc.append(str(e))
 
 # Tipos de datos
 def p_tipo(p):
@@ -700,15 +714,13 @@ def p_mover(p):
     """
     mover : moveTo PARENTESIS_A expresion PARENTESIS_B PUNTOCOMA
           | moveTo PARENTESIS_A atrObjeto PARENTESIS_B PUNTOCOMA
-          | moveTo PARENTESIS_A elementoArr PARENTESIS_B PUNTOCOMA
     """
     p[0] = p[1]
 
 def p_moverError1(p):
     """
     mover : moveTo PARENTESIS_A expresion PARENTESIS_B 
-          | moveTo PARENTESIS_A atrObjeto PARENTESIS_B 
-          | moveTo PARENTESIS_A elementoArr PARENTESIS_B
+          | moveTo PARENTESIS_A atrObjeto PARENTESIS_B
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea "+str(p.lineno(1)-linea)+
                              "\nFalta punto y coma. Se espera: moveTo PARENTESIS_A expresion PARENTESIS_B PUNTOCOMA"+
@@ -718,7 +730,6 @@ def p_moverError2(p):
     """
     mover : moveTo PARENTESIS_A expresion PUNTOCOMA 
           | moveTo PARENTESIS_A atrObjeto PUNTOCOMA
-          | moveTo PARENTESIS_A elementoArr PUNTOCOMA
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea "+str(p.lineno(1)-linea)+
                              "\nFalta cerrar Parentesis('('). Se espera: moveTo PARENTESIS_A expresion PARENTESIS_B PUNTOCOMA"+
@@ -728,7 +739,6 @@ def p_moverError3(p):
     """
     mover : moveTo  expresion PARENTESIS_B PUNTOCOMA 
           | moveTo atrObjeto PARENTESIS_B PUNTOCOMA
-          | moveTo elementoArr PARENTESIS_B PUNTOCOMA
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea "+str(p.lineno(1)-linea)+
                              "\nFalta abrir Parentesis('('). Se espera: moveTo PARENTESIS_A expresion PARENTESIS_B PUNTOCOMA"+
@@ -749,15 +759,13 @@ def p_posicion(p):
     """
     posicion : glassPosition PARENTESIS_A expresion PARENTESIS_B
              | glassPosition PARENTESIS_A atrObjeto PARENTESIS_B
-             | glassPosition PARENTESIS_A elementoArr PARENTESIS_B
     """
     p[0] = 'TRUE'
 
 def p_posicionError1(p):
     """
     posicion : glassPosition PARENTESIS_A expresion 
-             | glassPosition PARENTESIS_A atrObjeto 
-             | glassPosition PARENTESIS_A elementoArr 
+             | glassPosition PARENTESIS_A atrObjeto
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea: "+str(p.lineno(1)-linea)+
                              "\nFalta cerrar el Parentesis (')')"+
@@ -777,7 +785,6 @@ def p_posicionError3(p):
     """
     posicion : glassPosition expresion PARENTESIS_B
              | glassPosition atrObjeto PARENTESIS_B
-             | glassPosition elementoArr PARENTESIS_B
 
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea: "+str(p.lineno(1)-linea)+
@@ -792,15 +799,13 @@ def p_abrir(p):
     """
     abrir : gateOpen PARENTESIS_A expresion PARENTESIS_B PUNTOCOMA
           | gateOpen PARENTESIS_A atrObjeto PARENTESIS_B PUNTOCOMA
-          | gateOpen PARENTESIS_A elementoArr PARENTESIS_B PUNTOCOMA
     """
     p[0] = p[1]
 
 def p_abrirError1(p):
     """
     abrir : gateOpen PARENTESIS_A expresion PARENTESIS_B 
-          | gateOpen PARENTESIS_A atrObjeto PARENTESIS_B 
-          | gateOpen PARENTESIS_A elementoArr PARENTESIS_B
+          | gateOpen PARENTESIS_A atrObjeto PARENTESIS_B
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea: "+str(p.lineno(1)-linea)+
                              "\nFalta Punto Y Coma"+
@@ -811,7 +816,6 @@ def p_abrirError2(p):
     """
     abrir : gateOpen PARENTESIS_A expresion PUNTOCOMA
           | gateOpen PARENTESIS_A atrObjeto PUNTOCOMA
-          | gateOpen PARENTESIS_A elementoArr PUNTOCOMA
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea: "+str(p.lineno(1)-linea)+
                              "\nFalta Cerrar Parentesis (')')"+
@@ -823,7 +827,6 @@ def p_abrirError3(p):
     """
     abrir : gateOpen expresion PARENTESIS_B PUNTOCOMA
           | gateOpen atrObjeto PARENTESIS_B  PUNTOCOMA
-          | gateOpen elementoArr PARENTESIS_B  PUNTOCOMA
     """
     errores_Sinc_Desc.append("Error Sintactico en la linea: "+str(p.lineno(1)-linea)+
                              "\nFalta Abrir Parentesis ('(')"+
@@ -910,29 +913,29 @@ def p_bloque_codigo_error2(t):
     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(1)-linea)+": Falta la llave de cierre '}'")  
     
 #----------------------Error crear objeto-----------------------------
-def p_declaracion_crearObjError1(t):
-    '''declaracion : ASIGNACION SLOT NUMERO PUNTOCOMA'''
-    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta el nombre del objeto")
+# def p_declaracion_crearObjError1(t):
+#     '''declaracion : ASIGNACION SLOT NUMERO PUNTOCOMA'''
+#     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta el nombre del objeto")
     
-def p_declaracion_crearObjError2(t):
-    '''declaracion : ID SLOT NUMERO PUNTOCOMA'''
-    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta simbolo de asignación (=)")
+# def p_declaracion_crearObjError2(t):
+#     '''declaracion : ID SLOT NUMERO PUNTOCOMA'''
+#     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta simbolo de asignación (=)")
 
-def p_declaracion_crearObjError3(t):
-    '''declaracion : ID ASIGNACION NUMERO PUNTOCOMA'''
-    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta la palabra reserva 'SLOT'")
+# def p_declaracion_crearObjError3(t):
+#     '''declaracion : ID ASIGNACION NUMERO PUNTOCOMA'''
+#     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta la palabra reserva 'SLOT'")
     
-def p_declaracion_crearObjError4(t):
-    '''declaracion : ID ASIGNACION SLOT PUNTOCOMA'''
-    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta el nombre del objeto")
+# def p_declaracion_crearObjError4(t):
+#     '''declaracion : ID ASIGNACION SLOT PUNTOCOMA'''
+#     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta el nombre del objeto")
 
-def p_declaracion_crearObjError5(t):
-    '''declaracion : ID ASIGNACION SLOT NUMERO'''
-    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta punto y coma")
+# def p_declaracion_crearObjError5(t):
+#     '''declaracion : ID ASIGNACION SLOT NUMERO'''
+#     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta punto y coma")
 
-def p_declaracion_crearObjError5(t):
-    '''declaracion : ID ASIGNACION SLOT CORCHETE_A ID'''
-    errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta cerrar corchetes.")
+# def p_declaracion_crearObjError5(t):
+#     '''declaracion : ID ASIGNACION SLOT CORCHETE_A ID'''
+#     errores_Sinc_Desc.append("Error sintáctico en la linea "+str(t.lineno(2)-linea)+": Falta cerrar corchetes.")
     
 
 #----------------------Error crear arreglo-----------------------------
