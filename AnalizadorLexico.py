@@ -157,6 +157,25 @@ def t_ID(t):
         t.type = reservadas.get(t.value, 'ID')
     return t
 
+# Rango de valores para int y real (32 bits)
+INT_MIN = -2147483648
+INT_MAX = 2147483647
+REAL_MIN = -3.4e38
+REAL_MAX = 3.4e38
+
+# Validar rango de valores para tipo int
+def validar_int(valor):
+    if valor < INT_MIN or valor > INT_MAX:
+        return False
+    return True
+
+# Validar rango de valores para tipo real
+def validar_real(valor):
+    if valor < REAL_MIN or valor > REAL_MAX:
+        return False
+    return True
+
+
 def t_COMENTARIO(t):
     r'\/\/(.*?)\/\/'
     pass
@@ -164,11 +183,23 @@ def t_COMENTARIO(t):
 def t_REAL(t):
     r'-?(\d+\.\d+|\.\d+)'
     t.value = float(t.value)
+    if not validar_real(t.value):
+        global lista_errores_lexicos
+        lista_errores_lexicos.append(t.lineno)
+        global errores_Desc
+        errores_Desc.append(f"Valor real fuera de rango en la línea {t.lineno}: {t.value}")
+        t.value = None
     return t
 
 def t_NUMERO(t):
     r'-?\d+'
     t.value = int(t.value)
+    if not validar_int(t.value):
+        global lista_errores_lexicos
+        lista_errores_lexicos.append(t.lineno)
+        global errores_Desc
+        errores_Desc.append(f"Valor entero fuera de rango en la línea {t.lineno}: {t.value}")
+        t.value = None
     return t
 
 def t_TRUE(t):
