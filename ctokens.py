@@ -66,6 +66,7 @@ reservadas = [
     'gateOpen',
     'CO',
     'CA',
+    'GATE'
 ]
 
 tokens = [

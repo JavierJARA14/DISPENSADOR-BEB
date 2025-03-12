@@ -29,6 +29,7 @@ reservadas = {
     'moveTo':'moveTo',
     'glassPosition':'glassPosition',
     'gateOpen':'gateOpen',
+    'GATE': 'GATE'
 }
 
 tokens = [
@@ -91,6 +92,9 @@ tokens = [
     'gateOpen',
     'CO',
     'CA',
+    'GATE',
+    'BE_OPEN',
+    'BE_CLOSE'
 ]
 
 t_ignore = ' \t'
@@ -133,6 +137,14 @@ def t_SALTOLINEA(t):
 def t_CADENA(t):
     r'\#.*?\#'
     t.type = 'CADENA'
+    return t
+
+def t_BE_OPEN(t):
+    r'BE_OPEN'
+    return t
+
+def t_BE_CLOSE(t):
+    r'BE_CLOSE'
     return t
 
 # Token para IF

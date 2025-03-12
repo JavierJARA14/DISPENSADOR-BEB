@@ -69,6 +69,7 @@ def p_lista_declaraciones(p):
                         | abrir
                         | llamadafunc
                         | imprimir
+                        | gate_instruccion
     """
     if len(p) == 3:
         p[0] = p[1] + [p[2]]
@@ -194,6 +195,17 @@ def p_declaracionsintipo(p):
 #-----------------Crear Objeto------------------------------
 def p_declaracion_crearObj(p):
     '''declaracion : ID ASIGNACION CO ID PUNTOCOMA'''
+
+def p_gate_instruccion(p):
+    """
+    gate_instruccion  : GATE PUNTO gate_options PUNTOCOMA         
+    """
+    
+def p_gate_options(p):
+    """
+    gate_options  : BE_OPEN
+                  | BE_CLOSE           
+    """
 
 #-----------------Arreglo------------------------------
 def p_declaracion_crearArreglo(p):
