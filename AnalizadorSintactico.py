@@ -354,6 +354,7 @@ def p_expresion(p):
               | TRUE
               | FALSE
               | posicion
+              | ID CORCHETE_A NUMERO CORCHETE_B
     """
     p[0] = p[1]
 
@@ -694,7 +695,7 @@ def p_funcionError7(p):
 def p_valorparam(p):
     """
     valorparam : expresion COMA valorparam
-               | expresion 
+               | expresion
     """
     valores.append(p[1])
 

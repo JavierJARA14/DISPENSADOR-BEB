@@ -24,8 +24,17 @@ class SymbolTable:
             return False
         
     def valor_arreglo(self, name, position, value):
-        self.table[name] = {'position': position, 'value': value}
-        return False
+        simbolo = self.Buscar(name)
+        if simbolo is None:
+            return False  # La variable no existe
+        if 'size' not in simbolo:
+            return False  # No es un arreglo
+        # Si el arreglo no tiene valores guardados, inicializarlo
+        if 'values' not in simbolo:
+            simbolo['values'] = {}
+        # Guardar el valor en la posición correspondiente
+        simbolo['values'][position] = value
+        return True
 
     def Buscar(self, name):
         if name in self.table:
