@@ -701,6 +701,7 @@ def p_valorparam(p):
 def p_llamadafunc(p):
     """
     llamadafunc : ID PARENTESIS_A valorparam PARENTESIS_B PUNTOCOMA
+                | ID PARENTESIS_A PARENTESIS_B PUNTOCOMA
     """
     global valores
     funcion = tabla_simbolos.Buscar(p[1])
