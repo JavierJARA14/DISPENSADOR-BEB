@@ -308,11 +308,11 @@ def p_expresion_comparacion(p):
               | expresion MAYORQUE expresion
               | expresion MAYORIGUAL expresion
     '''
-    tipo = TipoValor(str(p[1]))
-    tipo2 = TipoValor(str(p[3]))
-    if(tipo == 'bool' or tipo == 'stg' or tipo==None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2==None):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La operacion no es compatible con los tipos")
-    else:
+    tipo = TipoValor(str(p[1]))  # Tipo del primer operando
+    tipo2 = TipoValor(str(p[3])) # Tipo del segundo operando
+
+    # Asegúrate de que ambos operandos sean números o enteros
+    if tipo in ['int', 'float'] and tipo2 in ['int', 'float']:
         if p[2] == '<':
             p[0] = p[1] < p[3]
         elif p[2] == '<=':
@@ -321,6 +321,9 @@ def p_expresion_comparacion(p):
             p[0] = p[1] > p[3]
         elif p[2] == '>=':
             p[0] = p[1] >= p[3]
+    else:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
+
 
 def p_expresion_comparacion2(p):
     '''
@@ -329,13 +332,18 @@ def p_expresion_comparacion2(p):
     '''
     tipo = TipoValor(str(p[1]))
     tipo2 = TipoValor(str(p[3]))
-    if(tipo==None or tipo2==None):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La operacion no es compatible con los tipos")
-    else:
+
+    # Asegúrate de que ambos operandos sean comparables
+    if tipo is None or tipo2 is None:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
+    elif tipo in ['int', 'float', 'bool'] and tipo2 in ['int', 'float', 'bool']:
         if p[2] == '==':
             p[0] = p[1] == p[3]
         elif p[2] == '!=':
             p[0] = p[1] != p[3]
+    else:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
+
 
 def p_expresion(p):
     """
@@ -487,9 +495,12 @@ def p_import(p):
 
 def p_for_loop(p):
     """
-    for_loop : FOR PARENTESIS_A for_init PUNTOCOMA for_condicion PUNTOCOMA for_actualizacion PARENTESIS_B bloque_codigo
+    for_loop : FOR PARENTESIS_A for_init PUNTOCOMA expresion PUNTOCOMA for_actualizacion PARENTESIS_B bloque_codigo
     """
-    p[0] = ('for_loop', {'init': p[3], 'condition': p[5], 'update': p[7], 'body': p[9]})
+    if isinstance(p[5], bool):
+        p[0] = p[1]
+    else:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La condición del FOR debe ser un valor booleano")
 
 def p_for_init(p):
     """
@@ -503,9 +514,9 @@ def p_for_init(p):
         tipo_valor = TipoValor(str(valor))
         
         if tipo_var != tipo_valor:
-            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(3)}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
         else:
-            tabla_simbolos.Agregar(id_var, {'type': tipo_var, 'value': valor})
+            tabla_simbolos.insertar_variable(id_var, tipo_var, valor)
         
         p[0] = ('init', {'type': tipo_var, 'id': id_var, 'value': valor})
     
@@ -515,26 +526,15 @@ def p_for_init(p):
         simbolo = tabla_simbolos.Buscar(id_var)
         
         if simbolo is None:
-            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{id_var}' no ha sido declarada")
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{id_var}' no ha sido declarada")
         else:
             tipo_var = simbolo['type']
             tipo_valor = TipoValor(str(valor))
             
             if tipo_var != tipo_valor:
-                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
+                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
         
         p[0] = ('init', {'id': id_var, 'value': valor})
-
-def p_for_condicion(p):
-    """
-    for_condicion : expresion
-    """
-    tipo_condicion = TipoValor(str(p[1]))
-    
-    if tipo_condicion != 'bool':
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La condición del 'for' debe ser booleana, pero se encontró {tipo_condicion}")
-    
-    p[0] = ('condition', p[1])
 
 def p_for_actualizacion(p):
     """
@@ -545,7 +545,7 @@ def p_for_actualizacion(p):
     simbolo = tabla_simbolos.Buscar(p[1])
 
     if simbolo is None:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{p[1]}' no ha sido declarada")
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{p[1]}' no ha sido declarada")
     else:
         tipo_var = simbolo['type']
 
@@ -553,15 +553,15 @@ def p_for_actualizacion(p):
             tipo_valor = TipoValor(str(p[3]))
 
             if tipo_var != tipo_valor:
-                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{p[1]}' es de tipo '{tipo_var}' pero se intenta asignar un valor de tipo '{tipo_valor}'")
+                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{p[1]}' es de tipo '{tipo_var}' pero se intenta asignar un valor de tipo '{tipo_valor}'")
             
             p[0] = ('update', {'id': p[1], 'operation': p[2], 'value': p[3]})
         
-        elif p[2] == '++' or p[2] == '--':
+        elif p[2] == 'MASMAS' or p[2] == 'MENOSMENOS':
             if tipo_var not in ['int', 'float']:
-                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La variable '{p[1]}' debe ser numérica para poder incrementar o decrementar")
+                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{p[1]}' debe ser numérica para poder incrementar o decrementar")
             
-            p[0] = ('increment' if p[2] == '++' else 'decrement', {'id': p[1]})
+            p[0] = ('increment' if p[2] == 'MASMAS' else 'decrement', {'id': p[1]})
 
 #----fin bucle for ------------------------------------
 #-----------------Atributo de Objeto------------------------------
