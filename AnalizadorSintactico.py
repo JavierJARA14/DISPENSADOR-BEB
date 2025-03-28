@@ -239,6 +239,8 @@ def p_declaracion_funcion(p):
     declaracion_funcion : tipo ID ASIGNACION expresion PUNTOCOMA
     """
     # Verificar si la variable ya está declarada
+    global codigo_intermedio
+
     
     if tabla_simbolos.insertar_variable(p[2], p[1], p[4], 'nulo'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La variable '{p[2]}' ya ha sido declarada")
@@ -252,6 +254,11 @@ def p_declaracion_funcion(p):
         p[0] = ('declaracion_funcion', p[1], p[2], p[4])
     else:
         p[0] = p[1]
+        
+    # Generar código intermedio (TAC)
+    temp = nueva_temporal()  # Generar una variable temporal
+    codigo_intermedio.append(f"{temp} = {p[4]}")   # Guardar valor en temporal
+    codigo_intermedio.append(f"{p[2]} = {temp}")   # Asignar el temporal a la variable
 
 def p_declaracionsintipo(p):
     """
