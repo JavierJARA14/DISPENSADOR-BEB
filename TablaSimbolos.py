@@ -1,12 +1,13 @@
 class SymbolTable:
     def __init__(self):
         self.table = {}
+        self.current_scope = "global"
 
-    def insertar_variable(self, name, data_type, value):
+    def insertar_variable(self, name, data_type, value, scope):
         if name in self.table:
             return True
         else:
-            self.table[name] = {'type': data_type, 'value': value}
+            self.table[name] = {'type': data_type, 'value': value, 'scope': scope}
             return False
 
     def insertar_funcion(self, name, parameters):
@@ -16,16 +17,36 @@ class SymbolTable:
             self.table[name] = {'type': 'funcion', 'parameters': parameters}
             return False
         
-    def declarar_arreglo(self, name, data_type, size):
+    def declarar_arreglo(self, name, data_type, size, scope):
         if name in self.table:
             return True
         else:
-            self.table[name] = {'type': data_type, 'size': size}
+            self.table[name] = {'type': data_type, 'size': size, 'scope': scope}
             return False
         
-    def valor_arreglo(self, name, position, value):
-        self.table[name] = {'position': position, 'value': value}
-        return False
+    # def valor_arreglo(self, name, position, value):
+    #     name = name + '[' +  str(position) + ']'
+    #     self.table[name] = {'position': position, 'value': value}
+    #     return False
+
+    def valor_arreglo(self, name, position, value, scope):
+        simbolo = self.Buscar(name)
+        if simbolo is None:
+            return False  # La variable no existe
+        if 'size' not in simbolo:
+            return False  # No es un arreglo
+        # Si el arreglo no tiene valores guardados, inicializarlo
+        if 'values' not in simbolo:
+            simbolo['values'] = {}
+            # Guardar el valor en la posición correspondiente
+            simbolo['values'][position] = value
+            simbolo['scope'] = scope
+            return True
+
+    def cambiar_nulos(self, funcion):
+        for name, value in self.table.items():  # Iterar sobre claves y valores
+            if value.get('scope') == 'nulo':  # Usar .get() para evitar KeyError
+                value['scope'] = funcion  # Modificar el valor
 
     def Buscar(self, name):
         if name in self.table:
@@ -39,13 +60,23 @@ class SymbolTable:
             return variable.get('value', None)
         return None
 
+    def limpiar(self):
+        """Limpia la tabla de símbolos completamente."""
+        self.table.clear()
+        print("Tabla de símbolos limpiada.")
+
     def display(self):
         print("Symbol Table:")
         for name, info in self.table.items():
-            if info['type'] == 'funcion':
-                print("Function: {} | Type: {} | Parameters: {}".format(name, info['type'], info['parameters']))
+            if info.get('type') == 'funcion':  # Usar .get() para evitar KeyError
+                print("Function: {} | Type: {} | Parameters: {}".format(name, info['type'], info.get('parameters', 'N/A')))
             else:
-                print("Variable: {} | Type: {} | Value: {}".format(name, info['type'], info['value']))
+                print("Variable: {} | Type: {} | Value: {} | Scope: {}".format(
+                    name,
+                    info.get('type', 'N/A'),  # Usar .get() para evitar KeyError
+                    info.get('value', 'N/A'),  # Usar .get() para evitar KeyError
+                    info.get('scope', 'N/A')   # Usar .get() para evitar KeyError
+                ))
 
 """
 # Ejemplo de uso

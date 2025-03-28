@@ -6,7 +6,7 @@ import tkinter.font as tkFont
 import AnalizadorLexico as AL
 from AnalizadorLexico import limpiar_errores_lex
 from ctokens import reservadas
-
+from AnalizadorSintactico import tabla_simbolos 
 
 
 resultados = []
@@ -126,7 +126,11 @@ class Compilador(Tk):
         self.btn_compilar.pack(side="left", padx=5)
         self.btn_tokens = ttk.Button(self.buttons_compiler_panel, text="Tokens", command=self.Tokens)
         self.btn_tokens.pack(side="left", padx=5)
-
+        self.btn_limpiar_tabla = ttk.Button(self.buttons_compiler_panel, text="Limpiar TS",command=self.limpiar_tabla)
+        self.btn_limpiar_tabla.pack(side="left",padx=5)
+        #Mostrar TS
+        self.btn_TS = ttk.Button(self.buttons_compiler_panel, text="Mostrar TS",command=self.mostrar_TS)
+        self.btn_TS.pack(side="left",padx=5)
         # Consola de salida
         self.console_frame = ttk.Frame(self, width=30)
         self.console_frame.pack(expand=True, fill="both", padx=10, pady=10)
@@ -232,6 +236,13 @@ class Compilador(Tk):
         app2 = VentanaTokens()
         app2.mainloop()
 
+    def limpiar_tabla(self):
+       tabla_simbolos.limpiar()
+       print("Tabla de simbolos limpiada")
+       
+    def mostrar_TS(self):
+       tabla_simbolos.display()
+       
     def update_line_numbers(self, event=None):
         # Accede a lista_errores_lexicos a través de una instancia de Compilador
         error_line = AL.lista_errores_lexicos
@@ -321,7 +332,6 @@ class Compilador(Tk):
         errores_Sem_Desc = AS.errores_Sem_Desc
         for error in errores_Sem_Desc:
             self.output_console.insert(END, error + "\n")
-
 
 if __name__ == "__main__":
     app = Compilador()

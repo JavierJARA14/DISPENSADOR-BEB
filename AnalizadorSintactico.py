@@ -16,7 +16,6 @@ def limpiar_errores():
     global errores_Sem_Desc
     errores_Sem_Desc = []
     global tabla_simbolos
-    tabla_simbolos = SymbolTable()
 
 global lista_errores_sintacticos
 lista_errores_sintacticos = []
@@ -54,6 +53,16 @@ def p_bloque_codigo(p):
     """
     p[0] = ('bloque_codigo', p[2])
 
+# Bloque de código funciones
+def p_bloque_codigo_funcion(p):
+    """
+    bloque_codigo_funcion : LLAVE_A lista_declaraciones_funciones LLAVE_C
+    """
+    p[0] = ('bloque_codigo_funcion', p[2])
+    
+    if p[3] == 'LLAVE_C':
+        tabla_simbolos.set_scope("global")
+
 # Lista de declaraciones
 def p_lista_declaraciones(p):
     """
@@ -76,6 +85,27 @@ def p_lista_declaraciones(p):
     else:
         p[0] = [p[1]]
 
+# Lista de declaraciones funciones
+def p_lista_declaraciones_funciones(p):
+    """
+    lista_declaraciones_funciones : lista_declaraciones_funciones lista_declaraciones_funciones
+                        | declaracion_funcion
+                        | si
+                        | mientras
+                        | for_loop
+                        | graImport
+                        | funcion
+                        | mover
+                        | posicion
+                        | abrir
+                        | llamadafunc
+                        | imprimir
+                        | gate_instruccion
+    """
+    if len(p) == 3:
+        p[0] = p[1] + [p[2]]
+    else:
+        p[0] = [p[1]]
 #DEFINIR CADENAS
 #----------- Validar cadenas dentro de las comillas del SMS -------------
 def p_listaExpresiones(p):
@@ -83,14 +113,14 @@ def p_listaExpresiones(p):
     lista_expresiones : CADENA 
                       | ID
                       | lista_expresiones SUMA CADENA
-                      | lista_expresiones SUMA ID
-                      
+                      | lista_expresiones SUMA ID              
 
     """
+
     if len(p) == 2:
         p[0] = [p[1]]
     else: 
-        p[0]=p[1] + [p[3]]   
+        p[0]=p[1] + [p[3]]
 #---------------------Imprimir cadenas----------------
 def p_imprimirPantalla(p):
     """
@@ -170,7 +200,7 @@ def p_declaracion(p):
     declaracion : tipo ID ASIGNACION expresion PUNTOCOMA
     """
     # Verificar si la variable ya está declarada
-    if tabla_simbolos.insertar_variable(p[2], p[1], p[4]):
+    if tabla_simbolos.insertar_variable(p[2], p[1], p[4], 'global'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La variable '{p[2]}' ya ha sido declarada")
     else:
         try:
@@ -183,12 +213,32 @@ def p_declaracion(p):
     else:
         p[0] = p[1]
 
+def p_declaracion_funcion(p):
+    """
+    declaracion_funcion : tipo ID ASIGNACION expresion PUNTOCOMA
+    """
+    # Verificar si la variable ya está declarada
+    
+    if tabla_simbolos.insertar_variable(p[2], p[1], p[4], 'nulo'):
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La variable '{p[2]}' ya ha sido declarada")
+    else:
+        try:
+            verificar_asignacion(tabla_simbolos, p[2], str(p[4]), p.lineno(2)-linea)
+        except Exception as e:
+            errores_Sem_Desc.append(str(e))
+        print(tabla_simbolos.current_scope)
+    if len(p) == 6:
+        p[0] = ('declaracion_funcion', p[1], p[2], p[4])
+    else:
+        p[0] = p[1]
+
 def p_declaracionsintipo(p):
     """
     declaracion : ID ASIGNACION expresion PUNTOCOMA
     """
     try:
         verificar_asignacion(tabla_simbolos, p[1], str(p[3]), p.lineno(2)-linea)
+        verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
     except Exception as e:
         errores_Sem_Desc.append(str(e))
 
@@ -216,12 +266,17 @@ def p_gate_options(p):
 def p_declaracion_crearArreglo(p):
     '''declaracion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
                    | tipo ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
-    if tabla_simbolos.declarar_arreglo(p[2], p[1], p[6]):
+    if tabla_simbolos.declarar_arreglo(p[2], p[1], p[6],'global'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: el arreglo '{p[2]}' ya ha sido declarado")
     else:
         if p.slice[5].type == 'ID':
             try:
-                verificar_asignacion_arreglo(tabla_simbolos, p[5], p.lineno(2)-linea)
+                verificar_asignacion_arreglo(tabla_simbolos, p[6], 'ID', p.lineno(2)-linea)
+            except Exception as e:
+                errores_Sem_Desc.append(str(e))
+        else:
+            try:
+                verificar_asignacion_arreglo(tabla_simbolos, p[6], 'VALOR', p.lineno(2)-linea)
             except Exception as e:
                 errores_Sem_Desc.append(str(e))
 
@@ -235,16 +290,59 @@ def p_declaracion_AsignarArreglo(p):
     '''
     if p.slice[3].type == 'ID':
             try:
-                verificar_asignacion_arreglo(tabla_simbolos, p[3], p.lineno(2)-linea)
+                verificar_asignacion_arreglo(tabla_simbolos, p[3], 'ID',p.lineno(2)-linea)
                 valor_id = valor_identificador(tabla_simbolos, p[3])
                 verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), valor_id, p.lineno(2)-linea)
-                tabla_simbolos.valor_arreglo(p[1], p[3], valor_id)
+                verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
+                verificar_ambito(tabla_simbolos, p[3], p.lineno(2)-linea)
+                tabla_simbolos.valor_arreglo(p[1], p[3], valor_id, 'global')
             except Exception as e:
                 errores_Sem_Desc.append(str(e))
     else:
         try:
             verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), p[3], p.lineno(2)-linea)
-            tabla_simbolos.valor_arreglo(p[1], p[3], p[6])
+            verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
+            tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'global')
+        except Exception as e:
+            errores_Sem_Desc.append(str(e))
+
+def p_declaracion_crearArreglo_funcion(p):
+    '''declaracion_funcion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
+                           | tipo ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
+    if tabla_simbolos.declarar_arreglo(p[2], p[1], p[6],'nulo'):
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: el arreglo '{p[2]}' ya ha sido declarado")
+    else:
+        if p.slice[5].type == 'ID':
+            try:
+                verificar_asignacion_arreglo(tabla_simbolos, p[6], 'ID', p.lineno(2)-linea)
+            except Exception as e:
+                errores_Sem_Desc.append(str(e))
+        else:
+            try:
+                verificar_asignacion_arreglo(tabla_simbolos, p[6], 'VALOR', p.lineno(2)-linea)
+            except Exception as e:
+                errores_Sem_Desc.append(str(e))
+
+def p_declaracion_AsignarArreglo_funcion(p):
+    '''declaracion_funcion : ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION expresion PUNTOCOMA
+                   | ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION TRUE PUNTOCOMA
+                   | ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION FALSE PUNTOCOMA
+                   | ID CORCHETE_A ID CORCHETE_B ASIGNACION expresion PUNTOCOMA
+                   | ID CORCHETE_A ID CORCHETE_B ASIGNACION TRUE PUNTOCOMA
+                   | ID CORCHETE_A ID CORCHETE_B ASIGNACION FALSE PUNTOCOMA
+    '''
+    if p.slice[3].type == 'ID':
+            try:
+                verificar_asignacion_arreglo(tabla_simbolos, p[3], 'ID',p.lineno(2)-linea)
+                valor_id = valor_identificador(tabla_simbolos, p[3])
+                verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), valor_id, p.lineno(2)-linea)
+                tabla_simbolos.valor_arreglo(p[1], p[3], valor_id, 'nulo')
+            except Exception as e:
+                errores_Sem_Desc.append(str(e))
+    else:
+        try:
+            verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), p[3], p.lineno(2)-linea)
+            tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'nulo')
         except Exception as e:
             errores_Sem_Desc.append(str(e))
 
@@ -348,6 +446,8 @@ def p_expresion_comparacion2(p):
 def p_expresion(p):
     """
     expresion : PARENTESIS_A expresion PARENTESIS_B
+              | ID CORCHETE_A NUMERO CORCHETE_B
+              | ID CORCHETE_A ID CORCHETE_B
               | NUMERO
               | REAL
               | CADENA
@@ -356,6 +456,19 @@ def p_expresion(p):
               | posicion
     """
     p[0] = p[1]
+    # if len(p) == 5:
+    #     if p.slice[3].type == 'ID':
+    #             try:
+    #                 verificar_asignacion_arreglo(tabla_simbolos, p[3], p.lineno(2)-linea)
+    #                 valor_id = valor_identificador(tabla_simbolos, p[3])
+    #                 verificar_asignacion_arreglo3(tabla_simbolos, p[1], valor_id, p.lineno(2)-linea)
+    #             except Exception as e:
+    #                 errores_Sem_Desc.append(str(e))
+    #     elif p.slice[3].type == 'NUMERO':
+    #         try:
+    #             verificar_asignacion_arreglo3(tabla_simbolos, p[1], p[3], p.lineno(2)-linea)
+    #         except Exception as e:
+    #             errores_Sem_Desc.append(str(e)) 
 
 def p_expresionId(p):
     """
@@ -516,7 +629,7 @@ def p_for_init(p):
         if tipo_var != tipo_valor:
             errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(3)}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
         else:
-            tabla_simbolos.insertar_variable(id_var, tipo_var, valor)
+            tabla_simbolos.insertar_variable(id_var, tipo_var, valor, 'local')
         
         p[0] = ('init', {'type': tipo_var, 'id': id_var, 'value': valor})
     
@@ -600,20 +713,21 @@ def p_errorFaltanParametros(p):
 
 def p_funcion1(p):
     """
-    funcion : FUN ID PARENTESIS_A PARENTESIS_B bloque_codigo
+    funcion : FUN ID PARENTESIS_A PARENTESIS_B bloque_codigo_funcion
     """
     if(tabla_simbolos.insertar_funcion(p[2], [])):
         errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": El nombre de la función "+p[2]+" ya ha sido declarado")
     p[0] = p[1]
+    tabla_simbolos.cambiar_nulos(p[2])
 
 def p_funcion(p):
     """
-    funcion : FUN ID PARENTESIS_A param PARENTESIS_B bloque_codigo
+    funcion : FUN ID PARENTESIS_A param PARENTESIS_B bloque_codigo_funcion
     """
     global parametros
     if(tabla_simbolos.insertar_funcion(p[2], parametros)):
         errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": El nombre de la función "+p[2]+" ya ha sido declarado")
-
+    tabla_simbolos.cambiar_nulos(p[2])
     parametros = []
 
 valores = []
