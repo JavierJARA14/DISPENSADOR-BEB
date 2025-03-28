@@ -192,13 +192,13 @@ def p_imprimirPantallaError5(p):
                              "\nPruebe con: SMS "+str(p[1])+str(p[2])+str(p[3])+str(p[4]))
  
 
-   
-
+codigo_intermedio = []  # Lista para almacenar las instrucciones IR
 
 def p_declaracion(p):
     """
     declaracion : tipo ID ASIGNACION expresion PUNTOCOMA
     """
+    global codigo_intermedio
     # Verificar si la variable ya está declarada
     if tabla_simbolos.insertar_variable(p[2], p[1], p[4], 'global'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La variable '{p[2]}' ya ha sido declarada")
@@ -212,6 +212,27 @@ def p_declaracion(p):
         p[0] = ('declaracion', p[1], p[2], p[4])
     else:
         p[0] = p[1]
+        
+    # Generar código intermedio (TAC)
+    temp = nueva_temporal()  # Generar una variable temporal
+    codigo_intermedio.append(f"{temp} = {p[4]}")   # Guardar valor en temporal
+    codigo_intermedio.append(f"{p[2]} = {temp}")   # Asignar el temporal a la variable
+
+    p[0] = ('declaracion', p[1], p[2], p[4])
+    
+contador_temporales = 0    
+def nueva_temporal():
+    
+    global contador_temporales
+    contador_temporales += 1
+    return f"t{contador_temporales}"
+      
+        
+def imprimirIT():
+    print("\nCódigo Intermedio Generado:")
+    for instr in codigo_intermedio:
+        print(instr)
+
 
 def p_declaracion_funcion(p):
     """
