@@ -238,7 +238,6 @@ class Compilador(Tk):
 
     def limpiar_tabla(self):
        tabla_simbolos.limpiar()
-       print("Tabla de simbolos limpiada")
        
     def mostrar_TS(self):
        tabla_simbolos.display()
