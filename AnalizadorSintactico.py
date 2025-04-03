@@ -25,9 +25,11 @@ global lista_errores_semanticos
 lista_errores_semanticos = []
 global errores_Sem_Desc
 errores_Sem_Desc = []
+codigo_intermedio = []  # Lista para almacenar las instrucciones IR
 
 global tabla_simbolos
 tabla_simbolos = SymbolTable()
+contador_temporales = 0
 
 linea = 0
 
@@ -190,9 +192,6 @@ def p_imprimirPantallaError5(p):
                              "\nSe espera SMS PARENTESIS_A lista_expresiones PARENTESIS_B PUNTOCOMA"+
                              "\n          ^^^"+
                              "\nPruebe con: SMS "+str(p[1])+str(p[2])+str(p[3])+str(p[4]))
- 
-
-codigo_intermedio = []  # Lista para almacenar las instrucciones IR
 
 def p_declaracion(p):
     """
@@ -220,7 +219,7 @@ def p_declaracion(p):
 
     p[0] = ('declaracion', p[1], p[2], p[4])
     
-contador_temporales = 0    
+  
 def nueva_temporal():
     
     global contador_temporales
@@ -264,9 +263,14 @@ def p_declaracionsintipo(p):
     """
     declaracion : ID ASIGNACION expresion PUNTOCOMA
     """
+    global codigo_intermedio
     try:
         verificar_asignacion(tabla_simbolos, p[1], str(p[3]), p.lineno(2)-linea)
         verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
+        
+        temp = nueva_temporal()  # Crear un nuevo temporal
+        codigo_intermedio.append(f"{temp} = {p[3]}")  # Guardar el valor de la expresión en el temporal
+        codigo_intermedio.append(f"{p[1]} = {temp}")  # Asignar el temporal a la variable destino (p[1])
     except Exception as e:
         errores_Sem_Desc.append(str(e))
 
@@ -294,6 +298,7 @@ def p_gate_options(p):
 def p_declaracion_crearArreglo(p):
     '''declaracion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
                    | tipo ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
+    global codigo_intermedio
     if tabla_simbolos.declarar_arreglo(p[2], p[1], p[6],'global'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: el arreglo '{p[2]}' ya ha sido declarado")
     else:
@@ -307,6 +312,7 @@ def p_declaracion_crearArreglo(p):
                 verificar_asignacion_arreglo(tabla_simbolos, p[6], 'VALOR', p.lineno(2)-linea)
             except Exception as e:
                 errores_Sem_Desc.append(str(e))
+                
 
 def p_declaracion_AsignarArreglo(p):
     '''declaracion : ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION expresion PUNTOCOMA

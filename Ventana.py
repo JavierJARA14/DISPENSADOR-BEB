@@ -318,6 +318,7 @@ class Compilador(Tk):
         limpiar_errores()
         global resultadosSintactico
         resultadosSintactico = AS.test_parser(codigo,lin)
+        AS.imprimirIT()
 
         # Imprimir resultados sintácticos en la consola de Python para depuración
         print("Resultado del análisis sintáctico:", resultadosSintactico)
