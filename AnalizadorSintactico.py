@@ -30,6 +30,7 @@ codigo_intermedio = []  # Lista para almacenar las instrucciones IR
 global tabla_simbolos
 tabla_simbolos = SymbolTable()
 contador_temporales = 0
+contador_etiquetas = 0
 
 linea = 0
 
@@ -221,11 +222,14 @@ def p_declaracion(p):
     
   
 def nueva_temporal():
-    
     global contador_temporales
     contador_temporales += 1
     return f"t{contador_temporales}"
       
+def nueva_etiqueta():
+    global contador_etiquetas
+    contador_etiquetas += 1
+    return f"L{contador_etiquetas}"
         
 def imprimirIT():
     print("\nCódigo Intermedio Generado:")
