@@ -46,6 +46,9 @@ def p_programa(p):
     """
     programa : gate_declaracion BEGIN bloque_codigo END
     """
+    global codigo_intermedio
+    for instr in p[3]:   # ← p[3] contiene la lista de todas las instrucciones acumuladas
+        codigo_intermedio.append(instr)
     p[0] = ('programa', p[3])
 
 
@@ -54,7 +57,7 @@ def p_bloque_codigo(p):
     """
     bloque_codigo : LLAVE_A lista_declaraciones LLAVE_C
     """
-    p[0] = ('bloque_codigo', p[2])
+    p[0] = p[2]
 
 # Bloque de código funciones
 def p_bloque_codigo_funcion(p):
@@ -84,9 +87,9 @@ def p_lista_declaraciones(p):
                         | gate_instruccion
     """
     if len(p) == 3:
-        p[0] = p[1] + [p[2]]
+        p[0] = p[1] + p[2]  # ← concatenamos listas directamente
     else:
-        p[0] = [p[1]]
+        p[0] = p[1]         # ← si es una sola lista, simplemente se pasa
 
 # Lista de declaraciones funciones
 def p_lista_declaraciones_funciones(p):
@@ -106,9 +109,10 @@ def p_lista_declaraciones_funciones(p):
                         | gate_instruccion
     """
     if len(p) == 3:
-        p[0] = p[1] + [p[2]]
+        p[0] = p[1] + p[2]  # ← concatenamos listas directamente
     else:
-        p[0] = [p[1]]
+        p[0] = p[1]         # ← si es una sola lista, simplemente se pasa
+
 #DEFINIR CADENAS
 #----------- Validar cadenas dentro de las comillas del SMS -------------
 def p_listaExpresiones(p):
@@ -220,8 +224,7 @@ def p_declaracion(p):
     """
     declaracion : tipo ID ASIGNACION expresion PUNTOCOMA
     """
-    global codigo_intermedio
-    # Verificar si la variable ya está declarada
+    # Semántica y verificación
     if tabla_simbolos.insertar_variable(p[2], p[1], p[4], 'global'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La variable '{p[2]}' ya ha sido declarada")
     else:
@@ -230,26 +233,19 @@ def p_declaracion(p):
         except Exception as e:
             errores_Sem_Desc.append(str(e))
 
-    if len(p) == 6:
-        p[0] = ('declaracion', p[1], p[2], p[4])
-    else:
-        p[0] = p[1]
-        
-    # Generar código intermedio (TAC)
-    temp = nueva_temporal()  # Generar una variable temporal
-    codigo_intermedio.append(f"{temp} = {p[4]}")   # Guardar valor en temporal
-    codigo_intermedio.append(f"{p[2]} = {temp}")   # Asignar el temporal a la variable
+    # Código intermedio
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[4]}",
+        f"{p[2]} = {temp}"
+    ]
 
-    p[0] = ('declaracion', p[1], p[2], p[4])
+    p[0] = instrucciones
 
 def p_declaracion_funcion(p):
     """
     declaracion_funcion : tipo ID ASIGNACION expresion PUNTOCOMA
     """
-    # Verificar si la variable ya está declarada
-    global codigo_intermedio
-
-    
     if tabla_simbolos.insertar_variable(p[2], p[1], p[4], 'nulo'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La variable '{p[2]}' ya ha sido declarada")
     else:
@@ -257,31 +253,34 @@ def p_declaracion_funcion(p):
             verificar_asignacion(tabla_simbolos, p[2], str(p[4]), p.lineno(2)-linea)
         except Exception as e:
             errores_Sem_Desc.append(str(e))
-        print(tabla_simbolos.current_scope)
-    if len(p) == 6:
-        p[0] = ('declaracion_funcion', p[1], p[2], p[4])
-    else:
-        p[0] = p[1]
-        
-    # Generar código intermedio (TAC)
-    temp = nueva_temporal()  # Generar una variable temporal
-    codigo_intermedio.append(f"{temp} = {p[4]}")   # Guardar valor en temporal
-    codigo_intermedio.append(f"{p[2]} = {temp}")   # Asignar el temporal a la variable
+
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[4]}",
+        f"{p[2]} = {temp}"
+    ]
+
+    p[0] = instrucciones
+
 
 def p_declaracionsintipo(p):
     """
     declaracion : ID ASIGNACION expresion PUNTOCOMA
     """
-    global codigo_intermedio
     try:
         verificar_asignacion(tabla_simbolos, p[1], str(p[3]), p.lineno(2)-linea)
         verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
-        
-        temp = nueva_temporal()  # Crear un nuevo temporal
-        codigo_intermedio.append(f"{temp} = {p[3]}")  # Guardar el valor de la expresión en el temporal
-        codigo_intermedio.append(f"{p[1]} = {temp}")  # Asignar el temporal a la variable destino (p[1])
+
+        temp = nueva_temporal()
+        instrucciones = [
+            f"{temp} = {p[3]}",
+            f"{p[1]} = {temp}"
+        ]
+
+        p[0] = instrucciones
     except Exception as e:
         errores_Sem_Desc.append(str(e))
+        p[0] = []  # En caso de error, devolvemos lista vacía
 
 #-----------------Crear Slot------------------------------
 def p_declaracion_crearObj(p):
@@ -302,9 +301,8 @@ def p_gate_instruccion(p):
     """
     gate_instruccion  : GATE PUNTO gate_options PUNTOCOMA         
     """
-    global codigo_intermedio
-
-    codigo_intermedio.append(f"GATE.{p[3]}")
+    instruccion = f"GATE.{p[3]}"
+    p[0] = [instruccion]
     
 def p_gate_options(p):
     """
@@ -410,6 +408,7 @@ def p_tipo(p):
     p[0] = p[1]
 
 # Expresiones
+# Expresiones
 def p_expresion_suma(p):
     'expresion : expresion SUMA expresion'
     tipo = TipoValor(str(p[1]))
@@ -459,23 +458,13 @@ def p_expresion_comparacion(p):
               | expresion MAYORQUE expresion
               | expresion MAYORIGUAL expresion
     '''
-    global codigo_intermedio
-    tipo = TipoValor(str(p[1]))  # Tipo del primer operando
-    tipo2 = TipoValor(str(p[3])) # Tipo del segundo operando
+    tipo = TipoValor(str(p[1]))
+    tipo2 = TipoValor(str(p[3]))
 
-    # Asegúrate de que ambos operandos sean números o enteros
     if tipo in ['int', 'float'] and tipo2 in ['int', 'float']:
-        if p[2] == '<':
-            p[0] = p[1] < p[3]
-        elif p[2] == '<=':
-            p[0] = p[1] <= p[3]
-        elif p[2] == '>':
-            p[0] = p[1] > p[3]
-        elif p[2] == '>=':
-            p[0] = p[1] >= p[3]
-        temp = nueva_temporal()
-        codigo_intermedio.append(f"{temp} = {p[1]} {p[2]} {p[3]}")
-        p[0] = temp
+        operador = p[2]
+        resultado = eval(f"{p[1]} {operador} {p[3]}")
+        p[0] = (resultado, str(p[1]), operador, str(p[3]))
     else:
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
 
@@ -488,14 +477,12 @@ def p_expresion_comparacion2(p):
     tipo = TipoValor(str(p[1]))
     tipo2 = TipoValor(str(p[3]))
 
-    # Asegúrate de que ambos operandos sean comparables
     if tipo is None or tipo2 is None:
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
     elif tipo in ['int', 'float', 'bool'] and tipo2 in ['int', 'float', 'bool']:
-        if p[2] == '==':
-            p[0] = p[1] == p[3]
-        elif p[2] == '!=':
-            p[0] = p[1] != p[3]
+        operador = p[2]
+        resultado = eval(f"{p[1]} {operador} {p[3]}")
+        p[0] = (resultado, str(p[1]), operador, str(p[3]))
     else:
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
 
@@ -513,20 +500,7 @@ def p_expresion(p):
               | posicion
     """
     p[0] = p[1]
-    # if len(p) == 5:
-    #     if p.slice[3].type == 'ID':
-    #             try:
-    #                 verificar_asignacion_arreglo(tabla_simbolos, p[3], p.lineno(2)-linea)
-    #                 valor_id = valor_identificador(tabla_simbolos, p[3])
-    #                 verificar_asignacion_arreglo3(tabla_simbolos, p[1], valor_id, p.lineno(2)-linea)
-    #             except Exception as e:
-    #                 errores_Sem_Desc.append(str(e))
-    #     elif p.slice[3].type == 'NUMERO':
-    #         try:
-    #             verificar_asignacion_arreglo3(tabla_simbolos, p[1], p[3], p.lineno(2)-linea)
-    #         except Exception as e:
-    #             errores_Sem_Desc.append(str(e)) 
-
+    
 def p_expresionId(p):
     """
     expresion : ID
@@ -579,10 +553,44 @@ def p_si(p):
     si : IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo
        | IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo ELSE bloque_codigo
     """
-    if isinstance(p[3], bool):
-        p[0] = p[1]
+    L_verdadero = nueva_etiqueta()
+    L_falso = nueva_etiqueta()
+    L_fin = nueva_etiqueta()
+
+    # 1. Procesar condición
+    condicion = p[3]
+    cond_instr = []
+
+    if not isinstance(condicion, tuple) or len(condicion) != 4:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La condición del IF debe ser booleana")
+        cond_temp = "0"  # Forzar salto si hay error
     else:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La condición del IF debe ser un valor booleano")
+        _, izq, op, der = condicion
+        cond_temp = nueva_temporal()
+        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]
+
+    # 2. Generar código intermedio para el bloque del IF
+    if len(p) == 6:  # IF sin ELSE
+        codigo = [
+            *cond_instr,
+            f"IF_NOT {cond_temp} GOTO {L_falso}",
+            *p[5],  # Bloque de código del IF
+            f"GOTO {L_fin}",
+            f"LABEL {L_falso}",
+            f"LABEL {L_fin}"
+        ]
+    else:  # IF con ELSE
+        codigo = [
+            *cond_instr,
+            f"IF_NOT {cond_temp} GOTO {L_falso}",
+            *p[5],  # Bloque de código del IF
+            f"GOTO {L_fin}",
+            f"LABEL {L_falso}",
+            *p[7],  # Bloque de código del ELSE
+            f"LABEL {L_fin}"
+        ]
+    
+    p[0] = codigo
 
 def p_siError1(p):
     """
@@ -667,125 +675,127 @@ def p_for_loop(p):
     """
     for_loop : FOR PARENTESIS_A for_init PUNTOCOMA expresion PUNTOCOMA for_actualizacion PARENTESIS_B bloque_codigo
     """
-    global codigo_intermedio
+    L_inicio = nueva_etiqueta()
+    L_fin = nueva_etiqueta()
     
-    condicion_valida = False
-    if isinstance(p[5], bool):
-        condicion_valida = True
-    elif isinstance(p[5], str) and p[5].startswith('t') and p[5][1:].isdigit():
-        condicion_valida = True
-    elif isinstance(p[5], str) and p[5] in tabla_simbolos:
-        if tabla_simbolos[p[5]]['type'] == 'bool':
-            condicion_valida = True
+    # 1. Procesar inicialización
+    init_data = p[3]
+    init_instr = []
+    if isinstance(init_data, tuple) and init_data[0] == 'init':
+        if 'value' in init_data[1]:
+            temp = nueva_temporal()
+            init_instr = [
+                f"{temp} = {init_data[1]['value']}",
+                f"{init_data[1]['id']} = {temp}"
+            ]
     
-    if not condicion_valida:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(5)}: La condición del FOR debe ser booleana")
-        return
+    # 2. Procesar condición
+    condicion = p[5]
+    cond_instr = []
+
+    if not isinstance(condicion, tuple) or len(condicion) != 4:
+        errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(5)}: La condición del FOR debe ser booleana")
+        cond_temp = "0"  # Forzar salto si hay error
+    else:
+        _, izq, op, der = condicion
+        cond_temp = nueva_temporal()
+        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]
+
+    # 3. Procesar actualización
+    update_data = p[7]
+    update_instr = []
+    if isinstance(update_data, tuple):
+        if update_data[0] == 'update' and 'value' in update_data[1]:
+            temp = nueva_temporal()
+            update_instr = [
+                f"{temp} = {update_data[1]['value']}",
+                f"{update_data[1]['id']} = {temp}"
+            ]
+        elif update_data[0] in ('increment', 'decrement'):
+            op = '+' if update_data[0] == 'increment' else '-'
+            temp = nueva_temporal()
+            update_instr = [
+                f"{temp} = {update_data[1]['id']} {op} 1",
+                f"{update_data[1]['id']} = {temp}"
+            ]
     
-    etiqueta_inicio = nueva_etiqueta()
-    etiqueta_actualizacion = nueva_etiqueta()
-    etiqueta_fin = nueva_etiqueta()
-    # 1. La inicialización (p[3]) ya se generó automáticamente
-    # 2. Insertamos etiqueta de inicio ANTES de la condición
-    codigo_intermedio.append(f"{etiqueta_inicio}:")
-    # 3. Condición del bucle (salto si es falsa)
-    codigo_intermedio.append(f"IF NOT {p[5]} GOTO {etiqueta_fin}")
-    # 4. El cuerpo del bucle (p[9]) se generará automáticamente aquí
-    # 5. Insertamos etiqueta de actualización ANTES del código de actualización
-    codigo_intermedio.append(f"{etiqueta_actualizacion}:")
-    # 6. El código de actualización (p[7]) se generará automáticamente aquí
-    # 7. Salto al inicio del bucle
-    codigo_intermedio.append(f"GOTO {etiqueta_inicio}")
-    # 8. Etiqueta de fin del bucle
-    codigo_intermedio.append(f"{etiqueta_fin}:")
-    p[0] = ('for_loop', p[3], p[5], p[7], p[9])
+    # 4. Generar código intermedio completo
+    codigo = [
+        *init_instr,
+        f"LABEL {L_inicio}",
+        *cond_instr,
+        f"IF_NOT {cond_temp} GOTO {L_fin}",
+        *p[9],  # Bloque de código
+        *update_instr,
+        f"GOTO {L_inicio}",
+        f"LABEL {L_fin}"
+    ]
+    
+    p[0] = codigo
 
 def p_for_init(p):
     """
     for_init : tipo ID ASIGNACION expresion
              | ID ASIGNACION expresion
     """
-    global codigo_intermedio
-    
-    # Tus validaciones originales se mantienen exactamente igual
-    if len(p) == 5:
+    if len(p) == 5:  # Con tipo explícito (int i = 0)
         tipo_var = p[1]
         id_var = p[2]
         valor = p[4]
         tipo_valor = TipoValor(str(valor))
         
         if tipo_var != tipo_valor:
-            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(3)}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
+            errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(3)}: Tipos incompatibles")
         else:
             tabla_simbolos.insertar_variable(id_var, tipo_var, valor, 'local')
         
-        # Generación de código intermedio (se agrega después de validaciones)
-        temp = nueva_temporal()
-        codigo_intermedio.append(f"{temp} = {valor}")
-        codigo_intermedio.append(f"{id_var} = {temp}")
-        
-        p[0] = ('init', {'type': tipo_var, 'id': id_var, 'value': valor, 'temp': temp})
-    
-    else:
+        p[0] = ('init', {'type': tipo_var, 'id': id_var, 'value': valor})
+    else:  # Sin tipo (i = 0)
         id_var = p[1]
         valor = p[3]
         simbolo = tabla_simbolos.Buscar(id_var)
         
         if simbolo is None:
-            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{id_var}' no ha sido declarada")
+            errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(1)}: Variable no declarada")
         else:
             tipo_var = simbolo['type']
             tipo_valor = TipoValor(str(valor))
             
             if tipo_var != tipo_valor:
-                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: Asignación de tipo incorrecto. Se esperaba '{tipo_var}' pero se encontró '{tipo_valor}'")
+                errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(1)}: Tipos incompatibles")
         
-        # Generación de código intermedio (se agrega después de validaciones)
-        temp = nueva_temporal()
-        codigo_intermedio.append(f"{temp} = {valor}")
-        codigo_intermedio.append(f"{id_var} = {temp}")
-        
-        p[0] = ('init', {'id': id_var, 'value': valor, 'temp': temp})
-        
+        p[0] = ('init', {'id': id_var, 'value': valor})
+
 def p_for_actualizacion(p):
     """
     for_actualizacion : ID ASIGNACION expresion
-                       | ID MASMAS
-                       | ID MENOSMENOS
+                      | ID MASMAS
+                      | ID MENOSMENOS
     """
-    global codigo_intermedio
-    
     simbolo = tabla_simbolos.Buscar(p[1])
 
     if simbolo is None:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{p[1]}' no ha sido declarada")
+        errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(1)}: Variable no declarada")
+        p[0] = ('update', {})
     else:
         tipo_var = simbolo['type']
 
-        if len(p) == 4:
+        if len(p) == 4:  # ID = expresion
             tipo_valor = TipoValor(str(p[3]))
-
             if tipo_var != tipo_valor:
-                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{p[1]}' es de tipo '{tipo_var}' pero se intenta asignar un valor de tipo '{tipo_valor}'")
-            
-            # Generación de código intermedio (después de validaciones)
-            temp = nueva_temporal()
-            codigo_intermedio.append(f"{temp} = {p[3]}")
-            codigo_intermedio.append(f"{p[1]} = {temp}")
-            
-            p[0] = ('update', {'id': p[1], 'operation': p[2], 'value': p[3], 'temp': temp})
-        
-        elif p[2] == 'MASMAS' or p[2] == 'MENOSMENOS':
+                errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(2)}: Tipos incompatibles")
+
+            p[0] = ('update', {'id': p[1], 'value': p[3]})
+        else:  # ID++ o ID--
             if tipo_var not in ['int', 'float']:
-                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La variable '{p[1]}' debe ser numérica para poder incrementar o decrementar")
-            
-            # Generación de código intermedio (después de validaciones)
-            temp = nueva_temporal()
-            operacion = "+" if p[2] == 'MASMAS' else "-"
-            codigo_intermedio.append(f"{temp} = {p[1]} {operacion} 1")
-            codigo_intermedio.append(f"{p[1]} = {temp}")
-            
-            p[0] = ('increment' if p[2] == 'MASMAS' else 'decrement', {'id': p[1], 'temp': temp})
+                errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(1)}: Operación no soportada para tipo '{tipo_var}'")
+
+            if p.slice[2].type == 'MASMAS':
+                op = 'increment'
+            else:
+                op = 'decrement'
+
+            p[0] = (op, {'id': p[1]})
 
 #----fin bucle for ------------------------------------
 #-----------------Atributo de Objeto------------------------------
