@@ -7,6 +7,7 @@ import AnalizadorLexico as AL
 from AnalizadorLexico import limpiar_errores_lex
 from ctokens import reservadas
 from AnalizadorSintactico import tabla_simbolos 
+from AnalizadorSintactico import obtener_codigo_intermedio
 
 
 resultados = []
@@ -90,7 +91,7 @@ class Compilador(Tk):
         # Frame para los botones
         self.buttons_frame = ttk.Frame(self.main_frame)
         self.buttons_frame.pack(side="top", fill="x")
-
+            
         self.btn_nuevo = ttk.Button(self.buttons_frame, text="Nuevo", command=self.nuevo_archivo)
         self.btn_nuevo.pack(side="left", padx=5)
         self.btn_abrir = ttk.Button(self.buttons_frame, text="Abrir", command=self.abrir_archivo)
@@ -103,7 +104,13 @@ class Compilador(Tk):
         self.btn_tamañoMas.pack(side="left", padx=5)
         self.btn_tamañoMenos = ttk.Button(self.buttons_frame, text="-", command=self.tamañoMenos) 
         self.btn_tamañoMenos.pack(side="left", padx=5)
+        # Nuevo botón para abrir la ventana de texto
+        self.btn_mostrar_codigo_intermedio = ttk.Button(self.buttons_frame, 
+                                                text="Mostrar Código Intermedio", 
+                                                command=self.mostrar_codigo_intermedio)
+        self.btn_mostrar_codigo_intermedio.pack(side="left", padx=5)
 
+                
         # Frame para el editor de código y los números de línea
         self.editor_frame = ttk.Frame(self.main_frame)
         self.editor_frame.pack(expand=True, fill="both")
@@ -152,6 +159,28 @@ class Compilador(Tk):
     def update_line_numbers_and_highlight(self, event=None):
         self.update_line_numbers()
         self.resaltar_palabras_reservadas()
+
+    def mostrar_codigo_intermedio(self):
+        # Llamamos a la función en AnalizadorSintactico que devuelve el código intermedio
+        from AnalizadorSintactico import obtener_codigo_intermedio  # Importar dentro de la función si es necesario
+        codigo_intermedio = obtener_codigo_intermedio()  # Llamamos a la función para obtener el código intermedio
+
+        # Mostrar el código intermedio en una ventana secundaria no editable
+        self.mostrar_texto(codigo_intermedio)
+
+    def mostrar_texto(self, texto):
+        # Crear una ventana secundaria para mostrar el texto
+        ventana_texto = Toplevel(self)  # Crea una nueva ventana (Toplevel)
+        ventana_texto.title("Código Intermedio")  # Título de la ventana
+        ventana_texto.geometry("600x400")  # Puedes ajustar el tamaño de la ventana
+
+        # Usamos un widget 'ScrolledText' para mostrar el texto, lo cual lo hace desplazable
+        texto_widget = scrolledtext.ScrolledText(ventana_texto, wrap=WORD, height=15, width=60, state=DISABLED)
+        texto_widget.pack(expand=True, fill="both")
+        texto_widget.config(state=NORMAL)  # Permite modificar el widget (aunque luego lo dejaremos no editable)
+        texto_widget.insert(END, texto)  # Inserta el texto proporcionado
+        texto_widget.config(state=DISABLED)  # Hace que el widget sea no editable
+
 
     def nuevo_archivo(self):
         if self.text_editor.get("1.0", END).strip():
@@ -318,7 +347,9 @@ class Compilador(Tk):
         limpiar_errores()
         global resultadosSintactico
         resultadosSintactico = AS.test_parser(codigo,lin)
-        AS.imprimirIT()
+        
+        AS.contador_etiquetas = 0
+        AS.contador_temporales = 0
 
         # Imprimir resultados sintácticos en la consola de Python para depuración
         print("Resultado del análisis sintáctico:", resultadosSintactico)
