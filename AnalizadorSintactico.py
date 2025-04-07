@@ -983,7 +983,7 @@ def p_funcion1(p):
 
     codigo_intermedio.append(f"endfunc {nombre_funcion}\n")
 
-    p[0] = ('funcion', nombre_funcion, [], p[5])
+    #p[0] = ('funcion', nombre_funcion, [], p[5])
 
 def p_funcion(p):
     """
@@ -1012,7 +1012,7 @@ def p_funcion(p):
 
     parametros = []  # Limpiar la lista para siguientes funciones
 
-    p[0] = ('funcion', nombre_funcion, parametros, p[6])
+    #p[0] = ('funcion', nombre_funcion, parametros, p[6])
 valores = []
 
 def p_funcionError1(p):
@@ -1125,8 +1125,8 @@ def p_llamadafunc(p):
             errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La función '{nombre_funcion}' no acepta más de {cantidad_parametros} argumentos.")
 
         # 🔸 Generar código intermedio
-        for valor in valores:
-            codigo_intermedio.append(f"param {valor}")
+        #for valor in valores:
+            #codigo_intermedio.append(f"param {valor}")
         codigo_intermedio.append(f"call {nombre_funcion}, {cantidad_argumentos}")
     valores = []
 
