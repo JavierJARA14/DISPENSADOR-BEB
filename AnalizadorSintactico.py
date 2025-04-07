@@ -384,9 +384,11 @@ def p_declaracion_AsignarArreglo(p):
         f"{temp} = {p[6]}",
         f"{p[1]}[{p[3]}] = {temp}"
     ]
+    
+    registrar_temporal(f"{p[1]}[{p[3]}]", temp)
+    
     p[0] = instrucciones
 
-    registrar_temporal({p[1]}[{p[3]}], temp)
 
 def p_declaracion_crearArreglo_funcion(p):
     '''declaracion_funcion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
@@ -442,7 +444,7 @@ def p_declaracion_AsignarArreglo_funcion(p):
     ]
     p[0] = instrucciones
 
-    registrar_temporal({p[1]}[{p[3]}], temp)
+    registrar_temporal(f"{p[1]}[{p[3]}]", temp)
 
 # Tipos de datos
 def p_tipo(p):
