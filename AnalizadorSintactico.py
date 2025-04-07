@@ -26,6 +26,7 @@ lista_errores_semanticos = []
 global errores_Sem_Desc
 errores_Sem_Desc = []
 codigo_intermedio = []  # Lista para almacenar las instrucciones IR
+tabla_temporales = {}  # clave: expresión, valor: temporal
 
 global tabla_simbolos
 tabla_simbolos = SymbolTable()
@@ -207,6 +208,13 @@ def nueva_etiqueta():
     global contador_etiquetas
     contador_etiquetas += 1
     return f"L{contador_etiquetas}"
+
+def buscar_temporal(identificador):
+    return tabla_temporales.get(identificador, None)
+
+def registrar_temporal(identificador, temporal):
+    tabla_temporales[identificador] = temporal
+
         
 def imprimirIT():
     print("\nCódigo Intermedio Generado:")
@@ -239,7 +247,7 @@ def p_declaracion(p):
         f"{temp} = {p[4]}",
         f"{p[2]} = {temp}"
     ]
-
+    tabla_temporales.append
     p[0] = instrucciones
 
 def p_declaracion_funcion(p):
@@ -315,10 +323,7 @@ def p_gate_options(p):
 def p_declaracion_crearArreglo(p):
     '''declaracion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
                    | tipo ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
-    global codigo_intermedio
-    tipo = p[1]
-    nombre = p[2]
-    tamaño = p[6]  # puede ser número o ID, ya verificado
+    
     if tabla_simbolos.declarar_arreglo(p[2], p[1], p[6],'global'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: el arreglo '{p[2]}' ya ha sido declarado")
     else:
@@ -330,9 +335,17 @@ def p_declaracion_crearArreglo(p):
         else:
             try:
                 verificar_asignacion_arreglo(tabla_simbolos, p[6], 'VALOR', p.lineno(2)-linea)
-                codigo_intermedio.append(f"(array, {nombre}, {tamaño})")
             except Exception as e:
                 errores_Sem_Desc.append(str(e))
+
+    # Código intermedio para la declaración de arreglo
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[6]}",
+        f"DECLARE_ARRAY {p[2]}, {temp}"
+    ]
+    p[0] = instrucciones
+
                 
 
 def p_declaracion_AsignarArreglo(p):
@@ -343,9 +356,6 @@ def p_declaracion_AsignarArreglo(p):
                    | ID CORCHETE_A ID CORCHETE_B ASIGNACION TRUE PUNTOCOMA
                    | ID CORCHETE_A ID CORCHETE_B ASIGNACION FALSE PUNTOCOMA
     '''
-    global codigo_intermedio
-    nombre = p[1]
-    indice_raw = p[3]
     if p.slice[3].type == 'ID':
             try:
                 verificar_asignacion_arreglo(tabla_simbolos, p[3], 'ID',p.lineno(2)-linea)
@@ -354,8 +364,6 @@ def p_declaracion_AsignarArreglo(p):
                 verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
                 verificar_ambito(tabla_simbolos, p[3], p.lineno(2)-linea)
                 tabla_simbolos.valor_arreglo(p[1], p[3], valor_id, 'global')
-                idx_temp = nueva_temporal()
-                codigo_intermedio.append(f"{idx_temp} = {indice_raw}")
             except Exception as e:
                 errores_Sem_Desc.append(str(e))
     else:
@@ -363,24 +371,16 @@ def p_declaracion_AsignarArreglo(p):
             verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), p[3], p.lineno(2)-linea)
             verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
             tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'global')
-            idx_temp = str(indice_raw)
         except Exception as e:
             errores_Sem_Desc.append(str(e))
-    size_bytes = tabla_simbolos.get_tipo_size(tabla_simbolos.get_tipo(nombre))
-    off_temp = nueva_temporal()
-    codigo_intermedio.append(f"{off_temp} = {idx_temp} * {size_bytes}")
-    val_raw = p[6]
-    val_temp = None
-    if isinstance(val_raw, tuple) or p.slice[6].type == 'ID':
-        # si es expresión compleja o ID, la evaluamos en un temporal
-        val_temp = nueva_temporal()
-        codigo_intermedio.append(f"{val_temp} = {val_raw}")
-    else:
-        # literal TRUE/FALSE o número
-        val_temp = str(val_raw)
-    # 4) finalmente, el triplo de asignación al arreglo
-    #    (=, valor, nombre[offset])
-    codigo_intermedio.append(f"(=, {val_temp}, {nombre}[{off_temp}])")
+    
+    # Código intermedio para la asignación en arreglo
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[6]}",
+        f"{p[1]}[{p[3]}] = {temp}"
+    ]
+    p[0] = instrucciones
 
 def p_declaracion_crearArreglo_funcion(p):
     '''declaracion_funcion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
