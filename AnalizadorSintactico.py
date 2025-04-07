@@ -408,48 +408,104 @@ def p_tipo(p):
     p[0] = p[1]
 
 # Expresiones
-# Expresiones
 def p_expresion_suma(p):
     'expresion : expresion SUMA expresion'
-    tipo = TipoValor(str(p[1]))
-    tipo2 = TipoValor(str(p[3]))
-    if(tipo == 'bool' or tipo == 'stg' or tipo==None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2==None):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La operacion no es compatible con los tipos")
+
+    operando1 = p[1]
+    operando2 = p[3]
+
+    # Si los operandos son identificadores, obtener su valor de la tabla de símbolos
+    if isinstance(operando1, str):  # Es un identificador
+        operando1 = valor_identificador(tabla_simbolos, operando1)
+    
+    if isinstance(operando2, str):  # Es un identificador
+        operando2 = valor_identificador(tabla_simbolos, operando2)
+    
+    tipo = TipoValor(operando1)
+    tipo2 = TipoValor(operando2)
+
+    # Verificar si los tipos son compatibles
+    if tipo == 'bool' or tipo == 'stg' or tipo == None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2 == None:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La operación no es compatible con los tipos {tipo} y {tipo2}")
     else:
-        p[0] = p[1] + p[3]
+        instruccion = f"{operando1} + {operando2}"
+        p[0] = instruccion
 
 def p_expresion_resta(p):
     'expresion : expresion RESTA expresion'
-    tipo = TipoValor(str(p[1]))
-    tipo2 = TipoValor(str(p[3]))
-    if(tipo == 'bool' or tipo == 'stg' or tipo==None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2==None):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La operacion no es compatible con los tipos")
+    operando1 = p[1]
+    operando2 = p[3]
+
+    # Si los operandos son identificadores, obtener su valor de la tabla de símbolos
+    if isinstance(operando1, str):
+        operando1 = valor_identificador(tabla_simbolos, operando1)
+    
+    if isinstance(operando2, str):
+        operando2 = valor_identificador(tabla_simbolos, operando2)
+
+    tipo = TipoValor(operando1)
+    tipo2 = TipoValor(operando2)
+
+    # Verificar si los tipos son compatibles
+    if tipo == 'bool' or tipo == 'stg' or tipo == None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2 == None:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La operación no es compatible con los tipos {tipo} y {tipo2}")
     else:
-        p[0] = p[1] - p[3]
+        # Generar la instrucción intermedia
+        instruccion = f"{operando1} - {operando2}"
+        p[0] = instruccion
 
 def p_expresion_mult(p):
     'expresion : expresion MULTIPLICACION expresion'
-    tipo = TipoValor(str(p[1]))
-    tipo2 = TipoValor(str(p[3]))
-    if(tipo == 'bool' or tipo == 'stg' or tipo==None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2==None):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La operacion no es compatible con los tipos")
+    operando1 = p[1]
+    operando2 = p[3]
+
+    # Si los operandos son identificadores, obtener su valor de la tabla de símbolos
+    if isinstance(operando1, str):
+        operando1 = valor_identificador(tabla_simbolos, operando1)
+    
+    if isinstance(operando2, str):
+        operando2 = valor_identificador(tabla_simbolos, operando2)
+
+    tipo = TipoValor(operando1)
+    tipo2 = TipoValor(operando2)
+
+    # Verificar si los tipos son compatibles
+    if tipo == 'bool' or tipo == 'stg' or tipo == None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2 == None:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La operación no es compatible con los tipos {tipo} y {tipo2}")
     else:
-        p[0] = p[1] * p[3]
+        # Generar la instrucción intermedia
+        instruccion = f"{operando1} * {operando2}"
+        p[0] = instruccion
 
 def p_expresion_div(p):
     'expresion : expresion DIVISION expresion'
-    tipo = TipoValor(str(p[1]))
-    tipo2 = TipoValor(str(p[3]))
-    if(tipo == 'bool' or tipo == 'stg' or tipo==None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2==None):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": La operacion no es compatible con los tipos")
+    operando1 = p[1]
+    operando2 = p[3]
+
+    # Si los operandos son identificadores, obtener su valor de la tabla de símbolos
+    if isinstance(operando1, str):
+        operando1 = valor_identificador(tabla_simbolos, operando1)
+    
+    if isinstance(operando2, str):
+        operando2 = valor_identificador(tabla_simbolos, operando2)
+
+    tipo = TipoValor(operando1)
+    tipo2 = TipoValor(operando2)
+
+    # Verificar si los tipos son compatibles
+    if tipo == 'bool' or tipo == 'stg' or tipo == None or tipo2 == 'bool' or tipo2 == 'stg' or tipo2 == None:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: La operación no es compatible con los tipos {tipo} y {tipo2}")
     else:
-        if p[3] != 0:
-            p[0] = p[1] / p[3]
-            if(p[0]%1 == 0):
-                p[0] = int(p[0])
+        # Verificar si no se está dividiendo por cero
+        if operando2 == 0:
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: No se puede dividir por cero")
+            p[0] = None  # Devuelve None si ocurre el error
         else:
-            errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(2)-linea)+": No se puede dividir por cero")
-            p[0] = None
+            # Realizar la operación y comprobar si el resultado es entero
+            resultado = operando1 / operando2
+            if resultado % 1 == 0:
+                resultado = int(resultado)
+            p[0] = resultado
 
 def p_expresion_comparacion(p):
     '''
@@ -457,46 +513,57 @@ def p_expresion_comparacion(p):
               | expresion MENORIGUAL expresion
               | expresion MAYORQUE expresion
               | expresion MAYORIGUAL expresion
-    '''
-    tipo = TipoValor(str(p[1]))
-    tipo2 = TipoValor(str(p[3]))
-
-    if tipo in ['int', 'float'] and tipo2 in ['int', 'float']:
-        operador = p[2]
-        resultado = eval(f"{p[1]} {operador} {p[3]}")
-        p[0] = (resultado, str(p[1]), operador, str(p[3]))
-    else:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
-
-
-def p_expresion_comparacion2(p):
-    '''
-    expresion : expresion IGUAL expresion
+              | expresion IGUAL expresion
               | expresion DIFERENTE expresion
     '''
-    tipo = TipoValor(str(p[1]))
-    tipo2 = TipoValor(str(p[3]))
-
-    if tipo is None or tipo2 is None:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
-    elif tipo in ['int', 'float', 'bool'] and tipo2 in ['int', 'float', 'bool']:
-        operador = p[2]
-        
-        if p[1] == 'TRUE':
-            p[1] = True
-        elif p[1] == 'FALSE':
-            p[1] = False
-        
-        if p[3] == 'TRUE':
-            p[3] = True
-        elif p[3] == 'FALSE':
-            p[3] = False
-        
-        resultado = eval(f"{p[1]} {operador} {p[3]}")
-        p[0] = (resultado, str(p[1]), operador, str(p[3]))
+    # Obtener operandos manteniendo variables
+    left = p[1] if isinstance(p[1], str) else str(p[1])
+    right = p[3] if isinstance(p[3], str) else str(p[3])
+    operador = p[2]
+    
+    # Manejo especial para valores booleanos literales
+    if right == 'FALSE':
+        right = 'FALSE'
+        tipo_right = 'bool'
+    elif right == 'TRUE':
+        right = 'TRUE'
+        tipo_right = 'bool'
     else:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
+        tipo_right = obtener_tipo(p[3])
+    
+    tipo_left = obtener_tipo(p[1])
+    
+    # Validar compatibilidad de tipos
+    if not tipos_compatibles(tipo_left, tipo_right, operador):
+        errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(2)}: Tipos incompatibles {tipo_left} y {tipo_right} para operador '{operador}'")
+        p[0] = ('error', 'error', 'error', 'error')
+    else:
+        p[0] = ('comparacion', left, operador, right)
 
+def obtener_tipo(operando):
+    """Determina el tipo del operando"""
+    if isinstance(operando, str):
+        # Si es variable, busca en tabla de símbolos
+        simbolo = tabla_simbolos.Buscar(operando)
+        return simbolo['type'] if simbolo else None
+    elif operando == 'TRUE' or operando == 'FALSE':
+        return 'bool'
+    else:
+        return TipoValor(str(operando))
+
+def tipos_compatibles(tipo1, tipo2, operador):
+    """Determina si los tipos son compatibles para la operación"""
+    if operador in ['==', '!=']:
+        # Para igualdad/desigualdad, permitir:
+        # - bool con bool
+        # - numérico con numérico
+        # - bool con cualquier tipo si es comparación con TRUE/FALSE
+        if tipo1 == 'bool' or tipo2 == 'bool':
+            return True
+        return tipo1 == tipo2 or (tipo1 in ['int', 'float'] and tipo2 in ['int', 'float'])
+    else:
+        # Operadores relacionales solo para números
+        return tipo1 in ['int', 'float'] and tipo2 in ['int', 'float']
 
 def p_expresion(p):
     """
@@ -517,14 +584,13 @@ def p_expresionId(p):
     expresion : ID
     """
     valorVar = tabla_simbolos.Buscar(p[1])
-    if(valorVar != None):
-        if(valorVar['type'] != 'funcion'):
-                p[0] = valorVar['value']
+    if valorVar is not None:
+        if valorVar['type'] != 'funcion':
+            p[0] = p[1]  # Retornamos el nombre de la variable, no su valor
         else:
             p[0] = 'funcion'
     else:
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": La variable "+p[1]+" no ha sido declarada")
-
+        errores_Sem_Desc.append("Error semántico en la línea " + str(p.lineno(1)-linea) + ": La variable " + p[1] + " no ha sido declarada")
 
 # Operadores
 def p_operador(p):
@@ -564,7 +630,6 @@ def p_si(p):
     si : IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo
        | IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo ELSE bloque_codigo
     """
-    L_verdadero = nueva_etiqueta()
     L_falso = nueva_etiqueta()
     L_fin = nueva_etiqueta()
 
@@ -637,10 +702,32 @@ def p_While(p):
     """
     mientras : WHILE PARENTESIS_A expresion PARENTESIS_B bloque_codigo
     """
-    if isinstance(p[3], bool):
-        p[0] = p[1]
+    L_inicio = nueva_etiqueta()
+    L_fin = nueva_etiqueta()
+
+    # 1. Procesar la condición del while
+    condicion = p[3]
+    cond_instr = []
+
+    if not isinstance(condicion, tuple) or len(condicion) != 4:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La condición del WHILE debe ser booleana")
+        cond_temp = "0"  # Forzar salto si hay error
     else:
-        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La condición del WHILE debe ser un valor booleano")
+        _, izq, op, der = condicion
+        cond_temp = nueva_temporal()
+        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]
+
+    # 2. Generar el código intermedio para el ciclo while
+    codigo = [
+        f"LABEL {L_inicio}",  # Iniciar el ciclo
+        *cond_instr,  # Instrucciones de la condición
+        f"IF_NOT {cond_temp} GOTO {L_fin}",  # Si la condición es falsa, salir del ciclo
+        *p[5],  # Código dentro del bloque del while
+        f"GOTO {L_inicio}",  # Volver al inicio del ciclo para evaluar la condición de nuevo
+        f"LABEL {L_fin}"  # Etiqueta de fin del ciclo
+    ]
+
+    p[0] = codigo
 
     
 def p_WhileError1(p):
