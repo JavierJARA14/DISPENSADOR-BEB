@@ -630,43 +630,44 @@ def p_si(p):
     si : IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo
        | IF PARENTESIS_A expresion PARENTESIS_B bloque_codigo ELSE bloque_codigo
     """
-    L_falso = nueva_etiqueta()
-    L_fin = nueva_etiqueta()
+    L_falso = nueva_etiqueta()  # Etiqueta para el bloque falso
+    L_fin = nueva_etiqueta()    # Etiqueta para el final (común a ambos bloques)
 
     # 1. Procesar condición
     condicion = p[3]
     cond_instr = []
 
+    # Verificar si la condición es una expresión booleana válida
     if not isinstance(condicion, tuple) or len(condicion) != 4:
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La condición del IF debe ser booleana")
-        cond_temp = "0"  # Forzar salto si hay error
+        cond_temp = "0"  # Forzar un valor falso si la condición es incorrecta
     else:
         _, izq, op, der = condicion
         cond_temp = nueva_temporal()
-        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]
+        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]  # Generar código de la condición
 
     # 2. Generar código intermedio para el bloque del IF
     if len(p) == 6:  # IF sin ELSE
         codigo = [
             *cond_instr,
-            f"IF_NOT {cond_temp} GOTO {L_falso}",
+            f"IF_NOT {cond_temp} GOTO {L_falso}",  # Si la condición es falsa, saltar al bloque falso
             *p[5],  # Bloque de código del IF
-            f"GOTO {L_fin}",
-            f"LABEL {L_falso}",
-            f"LABEL {L_fin}"
+            f"GOTO {L_fin}",  # Saltar al final del IF
+            f"LABEL {L_falso}",  # Etiqueta para el bloque falso
+            f"LABEL {L_fin}"  # Etiqueta de fin común
         ]
     else:  # IF con ELSE
         codigo = [
             *cond_instr,
-            f"IF_NOT {cond_temp} GOTO {L_falso}",
+            f"IF_NOT {cond_temp} GOTO {L_falso}",  # Si la condición es falsa, saltar al bloque falso
             *p[5],  # Bloque de código del IF
-            f"GOTO {L_fin}",
-            f"LABEL {L_falso}",
+            f"GOTO {L_fin}",  # Saltar al final del IF
+            f"LABEL {L_falso}",  # Etiqueta para el bloque falso
             *p[7],  # Bloque de código del ELSE
-            f"LABEL {L_fin}"
+            f"LABEL {L_fin}"  # Etiqueta de fin común
         ]
     
-    p[0] = codigo
+    p[0] = codigo  # Asignar el código generado al resultado
 
 def p_siError1(p):
     """
@@ -702,8 +703,8 @@ def p_While(p):
     """
     mientras : WHILE PARENTESIS_A expresion PARENTESIS_B bloque_codigo
     """
-    L_inicio = nueva_etiqueta()
-    L_fin = nueva_etiqueta()
+    L_inicio = nueva_etiqueta()  # Etiqueta para el inicio del ciclo
+    L_fin = nueva_etiqueta()     # Etiqueta para el fin del ciclo
 
     # 1. Procesar la condición del while
     condicion = p[3]
@@ -711,23 +712,24 @@ def p_While(p):
 
     if not isinstance(condicion, tuple) or len(condicion) != 4:
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)}: La condición del WHILE debe ser booleana")
-        cond_temp = "0"  # Forzar salto si hay error
+        cond_temp = "0"  # Forzar un valor falso si la condición es incorrecta
     else:
+        # Procesar la condición (izquierda, operador, derecha)
         _, izq, op, der = condicion
         cond_temp = nueva_temporal()
-        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]
+        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]  # Generar el código para la condición
 
     # 2. Generar el código intermedio para el ciclo while
     codigo = [
-        f"LABEL {L_inicio}",  # Iniciar el ciclo
+        f"LABEL {L_inicio}",  # Iniciar el ciclo while
         *cond_instr,  # Instrucciones de la condición
         f"IF_NOT {cond_temp} GOTO {L_fin}",  # Si la condición es falsa, salir del ciclo
-        *p[5],  # Código dentro del bloque del while
-        f"GOTO {L_inicio}",  # Volver al inicio del ciclo para evaluar la condición de nuevo
+        *p[5],  # Instrucciones dentro del bloque del while
+        f"GOTO {L_inicio}",  # Volver al inicio para evaluar la condición nuevamente
         f"LABEL {L_fin}"  # Etiqueta de fin del ciclo
     ]
 
-    p[0] = codigo
+    p[0] = codigo  # Asignar el código generado al resultado
 
     
 def p_WhileError1(p):
@@ -773,33 +775,32 @@ def p_for_loop(p):
     """
     for_loop : FOR PARENTESIS_A for_init PUNTOCOMA expresion PUNTOCOMA for_actualizacion PARENTESIS_B bloque_codigo
     """
-    L_inicio = nueva_etiqueta()
-    L_fin = nueva_etiqueta()
+    L_inicio = nueva_etiqueta()  # Etiqueta para el inicio del ciclo
+    L_fin = nueva_etiqueta()     # Etiqueta para el fin del ciclo
     
-    # 1. Procesar inicialización
+    # 1. Procesar la inicialización
     init_data = p[3]
     init_instr = []
-    if isinstance(init_data, tuple) and init_data[0] == 'init':
-        if 'value' in init_data[1]:
-            temp = nueva_temporal()
-            init_instr = [
-                f"{temp} = {init_data[1]['value']}",
-                f"{init_data[1]['id']} = {temp}"
-            ]
+    if isinstance(init_data, tuple) and init_data[0] == 'init' and 'value' in init_data[1]:
+        temp = nueva_temporal()
+        init_instr = [
+            f"{temp} = {init_data[1]['value']}",
+            f"{init_data[1]['id']} = {temp}"
+        ]
     
-    # 2. Procesar condición
+    # 2. Procesar la condición
     condicion = p[5]
     cond_instr = []
-
+    
     if not isinstance(condicion, tuple) or len(condicion) != 4:
         errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(5)}: La condición del FOR debe ser booleana")
-        cond_temp = "0"  # Forzar salto si hay error
+        cond_temp = "0"  # Forzar un valor falso si la condición es incorrecta
     else:
         _, izq, op, der = condicion
         cond_temp = nueva_temporal()
-        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]
-
-    # 3. Procesar actualización
+        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]  # Generar código para la condición
+    
+    # 3. Procesar la actualización
     update_data = p[7]
     update_instr = []
     if isinstance(update_data, tuple):
@@ -816,20 +817,23 @@ def p_for_loop(p):
                 f"{temp} = {update_data[1]['id']} {op} 1",
                 f"{update_data[1]['id']} = {temp}"
             ]
+        else:
+            # Añadir caso por defecto en caso de que no haya actualización válida
+            errores_Sem_Desc.append(f"Error semántico en línea {p.lineno(7)}: Actualización del FOR no válida")
     
     # 4. Generar código intermedio completo
     codigo = [
-        *init_instr,
-        f"LABEL {L_inicio}",
-        *cond_instr,
-        f"IF_NOT {cond_temp} GOTO {L_fin}",
-        *p[9],  # Bloque de código
-        *update_instr,
-        f"GOTO {L_inicio}",
-        f"LABEL {L_fin}"
+        *init_instr,  # Instrucciones de inicialización
+        f"LABEL {L_inicio}",  # Etiqueta de inicio del ciclo
+        *cond_instr,  # Instrucciones de la condición
+        f"IF_NOT {cond_temp} GOTO {L_fin}",  # Si la condición es falsa, salir del ciclo
+        *p[9],  # Instrucciones dentro del bloque del FOR
+        *update_instr,  # Instrucciones de actualización
+        f"GOTO {L_inicio}",  # Volver al inicio del ciclo
+        f"LABEL {L_fin}"  # Etiqueta de fin del ciclo
     ]
     
-    p[0] = codigo
+    p[0] = codigo  # Asignar el código generado al resultado
 
 def p_for_init(p):
     """
