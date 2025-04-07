@@ -481,6 +481,17 @@ def p_expresion_comparacion2(p):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)}: La operación no es compatible con los tipos {tipo} y {tipo2}")
     elif tipo in ['int', 'float', 'bool'] and tipo2 in ['int', 'float', 'bool']:
         operador = p[2]
+        
+        if p[1] == 'TRUE':
+            p[1] = True
+        elif p[1] == 'FALSE':
+            p[1] = False
+        
+        if p[3] == 'TRUE':
+            p[3] = True
+        elif p[3] == 'FALSE':
+            p[3] = False
+        
         resultado = eval(f"{p[1]} {operador} {p[3]}")
         p[0] = (resultado, str(p[1]), operador, str(p[3]))
     else:
