@@ -58,6 +58,53 @@ class VentanaTokens(Tk):
         # Establecer las dimensiones de la ventana y posicionarla
         self.geometry(f'{ancho}x{alto}+{x}+{y}')
 
+class VentanaTablaSimbolos(Tk):
+    def __init__(self):
+        super().__init__()
+        self.centrar_ventana1(600, 400)
+        self.title("Tabla de Símbolos")
+
+        # Crear Treeview
+        self.tree = ttk.Treeview(self)
+        self.tree["columns"] = ("ID", "Tipo", "Valor", "Alcance")
+
+        # Configurar columnas
+        self.tree.column("#0", width=0, stretch=False)  # columna de índice
+        self.tree.column("ID", anchor='center', width=100)
+        self.tree.column("Tipo", anchor='center', width=100)
+        self.tree.column("Valor", anchor='center', width=100)
+        self.tree.column("Alcance", anchor='center', width=100)
+
+        # Encabezados de columnas
+        self.tree.heading("#0", text="", anchor='w')
+        self.tree.heading("ID", text="ID", anchor='center')
+        self.tree.heading("Tipo", text="Tipo", anchor='center')
+        self.tree.heading("Valor", text="Valor", anchor='center')
+        self.tree.heading("Alcance", text="Alcance", anchor='center')
+
+        # Insertar datos de la tabla de símbolos
+        self.insertar_simbolos()
+
+        # Añadir Treeview a la ventana
+        self.tree.pack(expand=True, fill='both')
+
+    def insertar_simbolos(self):
+        # Aquí deberías obtener los símbolos de la tabla de símbolos
+        simbolos = tabla_simbolos.obtener()  # Implementa esta función en tu archivo de tabla de símbolos
+        for simbolo in simbolos:
+            self.tree.insert("", "end", text="1", values=(simbolo['id'], simbolo['tipo'], simbolo['valor'], simbolo['alcance']))
+
+    def centrar_ventana1(self, ancho, alto):
+        # Obtener las dimensiones de la pantalla
+        pantalla_ancho = self.winfo_screenwidth()
+        pantalla_alto = self.winfo_screenheight()
+
+        # Calcular la posición x e y para centrar la ventana
+        x = (pantalla_ancho - ancho) // 2
+        y = (pantalla_alto - alto) // 2
+
+        # Establecer las dimensiones de la ventana y posicionarla
+        self.geometry(f'{ancho}x{alto}+{x}+{y}')
 
 class Compilador(Tk):
     contadorLinea = 0
@@ -133,8 +180,7 @@ class Compilador(Tk):
         self.btn_compilar.pack(side="left", padx=5)
         self.btn_tokens = ttk.Button(self.buttons_compiler_panel, text="Tokens", command=self.Tokens)
         self.btn_tokens.pack(side="left", padx=5)
-        self.btn_limpiar_tabla = ttk.Button(self.buttons_compiler_panel, text="Limpiar TS",command=self.limpiar_tabla)
-        self.btn_limpiar_tabla.pack(side="left",padx=5)
+
         #Mostrar TS
         self.btn_TS = ttk.Button(self.buttons_compiler_panel, text="Mostrar TS",command=self.mostrar_TS)
         self.btn_TS.pack(side="left",padx=5)
@@ -169,6 +215,7 @@ class Compilador(Tk):
         self.mostrar_texto(codigo_intermedio)
 
     def mostrar_texto(self, texto):
+        import AnalizadorSintactico as AS
         # Crear una ventana secundaria para mostrar el texto
         ventana_texto = Toplevel(self)  # Crea una nueva ventana (Toplevel)
         ventana_texto.title("Código Intermedio")  # Título de la ventana
@@ -180,7 +227,7 @@ class Compilador(Tk):
         texto_widget.config(state=NORMAL)  # Permite modificar el widget (aunque luego lo dejaremos no editable)
         texto_widget.insert(END, texto)  # Inserta el texto proporcionado
         texto_widget.config(state=DISABLED)  # Hace que el widget sea no editable
-
+        AS.codigo_intermedio = []
 
     def nuevo_archivo(self):
         if self.text_editor.get("1.0", END).strip():
@@ -269,7 +316,9 @@ class Compilador(Tk):
        tabla_simbolos.limpiar()
        
     def mostrar_TS(self):
-       tabla_simbolos.display()
+        # Crear y mostrar la ventana de la tabla de símbolos
+        app2 = VentanaTablaSimbolos()
+        app2.mainloop()
        
     def update_line_numbers(self, event=None):
         # Accede a lista_errores_lexicos a través de una instancia de Compilador
@@ -325,9 +374,11 @@ class Compilador(Tk):
         from AnalizadorSintactico import limpiar_errores
         # Limpia la lista de errores antes de cada compilación
         limpiar_errores_lex()
+        AS.codigo_intermedio = []
         # Limpiar la salida de consola
         self.output_console.delete(1.0, END)
-
+        tabla_simbolos.limpiar()
+        
         # Obtiene todo el código del editor
         codigo = self.text_editor.get("1.0", END)
 
@@ -351,9 +402,6 @@ class Compilador(Tk):
         AS.contador_etiquetas = 0
         AS.contador_temporales = 0
 
-        # Imprimir resultados sintácticos en la consola de Python para depuración
-        print("Resultado del análisis sintáctico:", resultadosSintactico)
-
         # Mostrar los errores sintácticos en la consola de salida
         errores_Sinc_Desc = AS.errores_Sinc_Desc
         for error in errores_Sinc_Desc:
@@ -363,6 +411,15 @@ class Compilador(Tk):
         errores_Sem_Desc = AS.errores_Sem_Desc
         for error in errores_Sem_Desc:
             self.output_console.insert(END, error + "\n")
+            
+        # Habilitar o deshabilitar el botón de código intermedio según haya errores o no
+        if errores_lexicos or errores_Sinc_Desc or errores_Sem_Desc:
+            self.btn_mostrar_codigo_intermedio.config(state="disabled")
+            AS.codigo_intermedio = []
+            messagebox.showerror("Error", "Se han encontrado errores en el código.\nNOTA: No se podrá generar el código intermedio.")
+        else:
+            self.btn_mostrar_codigo_intermedio.config(state="normal")
+
 
 if __name__ == "__main__":
     app = Compilador()

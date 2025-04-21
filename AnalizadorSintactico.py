@@ -88,9 +88,11 @@ def p_lista_declaraciones(p):
                         | gate_instruccion
     """
     if len(p) == 3:
-        p[0] = p[1] + p[2]  # ← concatenamos listas directamente
+        izquierda = list(p[1]) if p[1] is not None else []
+        derecha = list(p[2]) if p[2] is not None else []
+        p[0] = izquierda + derecha
     else:
-        p[0] = p[1]         # ← si es una sola lista, simplemente se pasa
+        p[0] = list(p[1]) if p[1] is not None else []
 
 # Lista de declaraciones funciones
 def p_lista_declaraciones_funciones(p):
@@ -110,9 +112,11 @@ def p_lista_declaraciones_funciones(p):
                         | gate_instruccion
     """
     if len(p) == 3:
-        p[0] = p[1] + p[2]  # ← concatenamos listas directamente
+        izquierda = p[1] if p[1] is not None else []
+        derecha = p[2] if p[2] is not None else []
+        p[0] = izquierda + derecha
     else:
-        p[0] = p[1]         # ← si es una sola lista, simplemente se pasa
+        p[0] = p[1] if p[1] is not None else []
 
 #DEFINIR CADENAS
 #----------- Validar cadenas dentro de las comillas del SMS -------------
@@ -360,24 +364,32 @@ def p_declaracion_AsignarArreglo(p):
                    | ID CORCHETE_A ID CORCHETE_B ASIGNACION TRUE PUNTOCOMA
                    | ID CORCHETE_A ID CORCHETE_B ASIGNACION FALSE PUNTOCOMA
     '''
+    # Si el índice es un identificador (otra variable), lo manejamos como tal
     if p.slice[3].type == 'ID':
-            try:
-                verificar_asignacion_arreglo(tabla_simbolos, p[3], 'ID',p.lineno(2)-linea)
-                valor_id = valor_identificador(tabla_simbolos, p[3])
-                verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), valor_id, p.lineno(2)-linea)
-                verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
-                verificar_ambito(tabla_simbolos, p[3], p.lineno(2)-linea)
-                tabla_simbolos.valor_arreglo(p[1], p[3], valor_id, 'global')
-            except Exception as e:
-                errores_Sem_Desc.append(str(e))
+        try:
+            verificar_asignacion_arreglo(tabla_simbolos, p[3], 'ID', p.lineno(2)-linea)
+            valor_id = valor_identificador(tabla_simbolos, p[3])
+            verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), valor_id, p.lineno(2)-linea)
+            verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
+            verificar_ambito(tabla_simbolos, p[3], p.lineno(2)-linea)
+            tabla_simbolos.valor_arreglo(p[1], p[3], valor_id, 'global')
+        except Exception as e:
+            errores_Sem_Desc.append(str(e))
     else:
         try:
+            # Aquí se asegura de que se registre el valor del arreglo en el índice correspondiente
             verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), p[3], p.lineno(2)-linea)
             verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
+            
+            # Guardar el valor del arreglo en la tabla de símbolos, con el índice correspondiente
+            if p[1] in tabla_simbolos.table:
+                if 'value' not in tabla_simbolos.table[p[1]]:
+                    tabla_simbolos.table[p[1]]['value'] = {}  # Si no tiene valores, inicializa el diccionario
+                tabla_simbolos.table[p[1]]['value'][p[3]] = p[6]  # Asigna el valor al índice del arreglo
             tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'global')
         except Exception as e:
             errores_Sem_Desc.append(str(e))
-    
+
     # Código intermedio para la asignación en arreglo
     temp = nueva_temporal()
     instrucciones = [
@@ -423,28 +435,46 @@ def p_declaracion_AsignarArreglo_funcion(p):
                    | ID CORCHETE_A ID CORCHETE_B ASIGNACION FALSE PUNTOCOMA
     '''
     if p.slice[3].type == 'ID':
-            try:
-                verificar_asignacion_arreglo(tabla_simbolos, p[3], 'ID',p.lineno(2)-linea)
-                valor_id = valor_identificador(tabla_simbolos, p[3])
-                verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), valor_id, p.lineno(2)-linea)
-                tabla_simbolos.valor_arreglo(p[1], p[3], valor_id, 'nulo')
-            except Exception as e:
-                errores_Sem_Desc.append(str(e))
+        try:
+            # Verificación y obtención de valores para el índice del arreglo
+            verificar_asignacion_arreglo(tabla_simbolos, p[3], 'ID', p.lineno(2) - linea)
+            valor_id = valor_identificador(tabla_simbolos, p[3])
+            
+            # Verificación de la asignación y almacenamiento del valor
+            verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), valor_id, p.lineno(2) - linea)
+            
+            # Aquí registramos el valor del arreglo en el ámbito 'nulo' (función)
+            if p[1] in tabla_simbolos.table:
+                if 'value' not in tabla_simbolos.table[p[1]]:
+                    tabla_simbolos.table[p[1]]['value'] = {}  # Inicializamos el diccionario de valores si no existe
+                tabla_simbolos.table[p[1]]['value'][p[3]] = valor_id  # Asignamos el valor al índice en el arreglo
+            tabla_simbolos.valor_arreglo(p[1], p[3], valor_id, 'nulo')  # Asignación dentro de la función (nulo)
+            
+        except Exception as e:
+            errores_Sem_Desc.append(str(e))
     else:
         try:
-            verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), p[3], p.lineno(2)-linea)
-            tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'nulo')
+            # Verificación y asignación cuando el índice es un número
+            verificar_asignacion_arreglo2(tabla_simbolos, p[1], str(p[6]), p[3], p.lineno(2) - linea)
+            
+            # Registrar el valor del arreglo en el ámbito 'nulo'
+            if p[1] in tabla_simbolos.table:
+                if 'value' not in tabla_simbolos.table[p[1]]:
+                    tabla_simbolos.table[p[1]]['value'] = {}  # Inicializamos el diccionario de valores si no existe
+                tabla_simbolos.table[p[1]]['value'][p[3]] = p[6]  # Asignamos el valor al índice en el arreglo
+            tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'nulo')  # Asignación dentro de la función (nulo)
         except Exception as e:
             errores_Sem_Desc.append(str(e))
 
+    # Código intermedio para la asignación en arreglo
     temp = nueva_temporal()
     instrucciones = [
-        f"{temp} = {p[6]}",
-        f"{p[1]}[{p[3]}] = {temp}"
+        f"{temp} = {p[6]}",  # Guardamos el valor temporal
+        f"{p[1]}[{p[3]}] = {temp}"  # Asignamos el valor al índice del arreglo
     ]
     p[0] = instrucciones
 
-    registrar_temporal(f"{p[1]}[{p[3]}]", temp)
+    registrar_temporal(f"{p[1]}[{p[3]}]", temp)  # Registrar el temporal
 
 # Tipos de datos
 def p_tipo(p):
@@ -470,6 +500,18 @@ def p_expresion_suma(p):
     if isinstance(operando2, str):  # Es un identificador
         operando2 = valor_identificador(tabla_simbolos, operando2)
     
+    # Verificar si son identificadores de arreglos y obtener el valor adecuado
+    if isinstance(operando1, list) or isinstance(operando1, dict):  # Si es un arreglo
+        # Obtener el índice si es necesario
+        if isinstance(p[2], int):  # Suponiendo que el índice es el segundo operando
+            operando1 = operando1[p[2]]  # Obtener el valor en el índice especificado
+    
+    if isinstance(operando2, list) or isinstance(operando2, dict):  # Si es un arreglo
+        # Obtener el índice si es necesario
+        if isinstance(p[2], int):  # Suponiendo que el índice es el segundo operando
+            operando2 = operando2[p[2]]  # Obtener el valor en el índice especificado
+
+    # Ahora, realizar la comprobación de tipo
     tipo = TipoValor(operando1)
     tipo2 = TipoValor(operando2)
 
@@ -479,6 +521,7 @@ def p_expresion_suma(p):
     else:
         instruccion = f"{operando1} + {operando2}"
         p[0] = instruccion
+
 
 def p_expresion_resta(p):
     'expresion : expresion RESTA expresion'
@@ -975,46 +1018,77 @@ def p_declaracion_asignarAtrObjeto(p):
 
 #-----------------Crear Funcion------------------------------
 parametros = []
+
 def p_param(p):
     """
     param : tipo ID COMA param
     """
     parametros.append([p[1], p[2]])
-    p[0] = parametros
+    p[0] = parametros  # Asignamos la lista de parámetros a p[0]
 
 def p_param2(p):
     """
     param : tipo ID
     """
     parametros.append([p[1], p[2]])
-    p[0] = parametros
+    p[0] = parametros  # Asignamos la lista de parámetros a p[0]
 
 def p_errorFaltanParametros(p):
     """
     param : ID
     """
     errores_Sinc_Desc.append("Error sintactico en la linea: "+str(p.lineno(1)-linea)+
-                             "\nNo se definio el tipo de dato del parametro '"+p[1]+"'")
+                             "\nNo se definió el tipo de dato del parámetro '"+p[1]+"'")
 
 
 def p_funcion1(p):
     """
     funcion : FUN ID PARENTESIS_A PARENTESIS_B bloque_codigo_funcion
     """
-    if(tabla_simbolos.insertar_funcion(p[2], [])):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": El nombre de la función "+p[2]+" ya ha sido declarado")
-    p[0] = p[1]
-    tabla_simbolos.cambiar_nulos(p[2])
+    nombre_funcion = p[2]
+
+    # Verificación semántica
+    if tabla_simbolos.insertar_funcion(nombre_funcion, []):
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: El nombre de la función {nombre_funcion} ya ha sido declarado")
+
+    tabla_simbolos.cambiar_nulos(nombre_funcion)
+
+    instrucciones = [f"\nfunc {nombre_funcion}:"]
+
+    if p[5]:  # bloque_codigo_funcion
+        instrucciones.extend(p[5])
+
+    instrucciones.append(f"endfunc {nombre_funcion}\n")
+
+    p[0] = instrucciones  # Asignamos las instrucciones a p[0]
 
 def p_funcion(p):
     """
     funcion : FUN ID PARENTESIS_A param PARENTESIS_B bloque_codigo_funcion
     """
     global parametros
-    if(tabla_simbolos.insertar_funcion(p[2], parametros)):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": El nombre de la función "+p[2]+" ya ha sido declarado")
-    tabla_simbolos.cambiar_nulos(p[2])
-    parametros = []
+
+    nombre_funcion = p[2]
+
+    # Verificación semántica
+    if tabla_simbolos.insertar_funcion(nombre_funcion, parametros):
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: El nombre de la función {nombre_funcion} ya ha sido declarado")
+
+    tabla_simbolos.cambiar_nulos(nombre_funcion)
+
+    instrucciones = [f"\nfunc {nombre_funcion}:"]
+
+    for param in parametros:
+        instrucciones.append(f"param {param}")
+
+    if p[6]:  # bloque_codigo_funcion
+        instrucciones.extend(p[6])
+
+    instrucciones.append(f"endfunc {nombre_funcion}\n")
+
+    p[0] = instrucciones  # Asignamos las instrucciones a p[0]
+
+    parametros = []  # Limpiamos la lista de parámetros para la siguiente función
 
 valores = []
 
@@ -1094,9 +1168,17 @@ def p_funcionError7(p):
 def p_valorparam(p):
     """
     valorparam : expresion COMA valorparam
-               | expresion 
     """
     valores.append(p[1])
+    p[0] = valores
+
+def p_valorparam2(p):
+    """
+    valorparam : expresion
+    """
+    valores.append(p[1])
+    p[0] = valores
+
 
 def p_llamadafunc(p):
     """
@@ -1104,28 +1186,38 @@ def p_llamadafunc(p):
                 | ID PARENTESIS_A PARENTESIS_B PUNTOCOMA
     """
     global valores
-    funcion = tabla_simbolos.Buscar(p[1])
-    
-    if(funcion == None):
-        errores_Sem_Desc.append("Error semántico en la linea "+str(p.lineno(1)-linea)+": La función "+p[1]+" no ha sido declarada")
+
+    nombre_funcion = p[1]
+    funcion = tabla_simbolos.Buscar(nombre_funcion)
+
+    instrucciones = []
+
+    if funcion is None:
+        errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La función '{nombre_funcion}' no ha sido declarada")
     else:
         parame = funcion['parameters']
         cantidad_parametros = len(parame)
         cantidad_argumentos = len(valores)
 
         if cantidad_parametros != cantidad_argumentos:
-            errores_Sem_Desc.append(f"Error semántico en la linea {p.lineno(1)-linea}: La función '{p[1]}' espera {cantidad_parametros} argumentos, pero se proporcionaron {cantidad_argumentos}")
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La función '{nombre_funcion}' espera {cantidad_parametros} argumentos, pero se proporcionaron {cantidad_argumentos}")
 
         for i in range(min(cantidad_parametros, cantidad_argumentos)):
             tipo_argumento = TipoValor(str(valores[i]))
             tipo_parametro = parame[i][0]
             if tipo_argumento != tipo_parametro:
-                errores_Sem_Desc.append(f"Error semántico en la linea {p.lineno(1)-linea}: Se esperaba un valor de tipo {tipo_parametro} pero se proporcionó uno de tipo {tipo_argumento}")
+                errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: Se esperaba un valor de tipo {tipo_parametro} pero se proporcionó uno de tipo {tipo_argumento}")
 
         if cantidad_argumentos > cantidad_parametros:
-            errores_Sem_Desc.append(f"Error semántico en la linea {p.lineno(1)-linea}: La función '{p[1]}' no acepta más de {cantidad_parametros} argumentos.")
+            errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(1)-linea}: La función '{nombre_funcion}' no acepta más de {cantidad_parametros} argumentos.")
 
-    valores = []
+        # Aquí generamos la instrucción de llamada a la función
+        instrucciones.append(f"call {nombre_funcion}, {cantidad_argumentos}")
+    
+    # Asignamos las instrucciones generadas a p[0]
+    p[0] = instrucciones
+
+    valores = []  # Limpiar la lista de valores
 
 #-----------------Funciones------------------------------
 def p_mover(p):
@@ -1397,4 +1489,3 @@ def test_parser(input_string, num):
     global linea
     linea = num
     result = parser.parse(input_string)
-    print(result)

@@ -7,8 +7,10 @@ class SymbolTable:
         if name in self.table:
             return True
         else:
+            # Asignar un valor a la clave 'value' cuando insertas una variable
             self.table[name] = {'type': data_type, 'value': value, 'scope': scope}
             return False
+
 
     def insertar_funcion(self, name, parameters):
         if name in self.table:
@@ -39,9 +41,10 @@ class SymbolTable:
         if 'values' not in simbolo:
             simbolo['values'] = {}
             # Guardar el valor en la posición correspondiente
-            simbolo['values'][position] = value
-            simbolo['scope'] = scope
-            return True
+        simbolo['values'][position] = value
+        simbolo['scope'] = scope
+        return True
+
 
     def cambiar_nulos(self, funcion):
         for name, value in self.table.items():  # Iterar sobre claves y valores
@@ -58,22 +61,37 @@ class SymbolTable:
         simbolo = self.Buscar(name)
         return simbolo['type']
 
-    def get_value(self, name):
+    def get_value(self, name, index=None):
+        # Obtener el símbolo correspondiente
         variable = self.Buscar(name)
+        
         if variable is not None:
+            # Si es un arreglo y se especifica un índice, devuelve el valor en esa posición
+            if variable['type'] == 'array' and index is not None:
+                return variable['value'][index] if index < len(variable['value']) else None
             return variable.get('value', None)
+        
         return None
+
 
     def limpiar(self):
         """Limpia la tabla de símbolos completamente."""
         self.table.clear()
-        print("Tabla de símbolos limpiada.")
 
     def display(self):
         print("Symbol Table:")
         for name, info in self.table.items():
             if info.get('type') == 'funcion':  # Usar .get() para evitar KeyError
                 print("Function: {} | Type: {} | Parameters: {}".format(name, info['type'], info.get('parameters', 'N/A')))
+            elif info.get('type') == 'arreglo':  # Si es un arreglo
+                # Verificar si el arreglo tiene elementos almacenados
+                arreglo_valores = info.get('value', {})
+                print(f"Array: {name} | Type: {info.get('type', 'N/A')} | Scope: {info.get('scope', 'N/A')}")
+                if arreglo_valores:  # Si el arreglo tiene valores
+                    for index, valor in arreglo_valores.items():
+                        print(f"  Index {index}: {valor}")
+                else:
+                    print(f"  No values assigned yet.")
             else:
                 print("Variable: {} | Type: {} | Value: {} | Scope: {}".format(
                     name,
@@ -81,6 +99,33 @@ class SymbolTable:
                     info.get('value', 'N/A'),  # Usar .get() para evitar KeyError
                     info.get('scope', 'N/A')   # Usar .get() para evitar KeyError
                 ))
+
+    def obtener(self):
+            simbolos = []
+            for name, info in self.table.items():
+                # Extraemos los datos relevantes y los agregamos a la lista
+                if info.get('type') == 'funcion':  # Si es una función
+                    simbolos.append({
+                        'id': name,
+                        'tipo': info['type'],
+                        'valor': 'N/A',  # Las funciones no tienen valor asignado
+                        'alcance': info.get('scope', 'global'),
+                    })
+                elif info.get('type') == 'arreglo':  # Si es un arreglo
+                    simbolos.append({
+                        'id': name,
+                        'tipo': info.get('type', 'N/A'),
+                        'valor': 'Valores: ' + ', '.join([f'[{k}]: {v}' for k, v in info.get('values', {}).items()]),
+                        'alcance': info.get('scope', 'N/A'),
+                    })
+                else:  # Si es una variable
+                    simbolos.append({
+                        'id': name,
+                        'tipo': info.get('type', 'N/A'),
+                        'valor': info.get('value', 'N/A'),
+                        'alcance': info.get('scope', 'N/A'),
+                    })
+            return simbolos
 
 """
 # Ejemplo de uso

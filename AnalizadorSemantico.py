@@ -2,27 +2,46 @@ from TablaSimbolos import SymbolTable
 import re
 
 def TipoValor(valor):
-    tipoInt =  r'-?\d+'
-    tipoReal = r'-?(\d+\.\d+|\.\d+)'
-    tipoStg = r'\#.*?\#'
+    tipoInt =  r'-?\d+'           # Expresión regular para enteros
+    tipoReal = r'-?(\d+\.\d+|\.\d+)'  # Expresión regular para reales
+    tipoStg = r'\#.*?\#'           # Expresión regular para strings (entre #)
+    
+    # Si 'valor' es un diccionario, extraemos su valor
+    if isinstance(valor, dict):
+        valor = valor.get('value', None)  # Extraemos el valor de la clave 'value' (ajusta esto si es necesario)
+    
+    # Asegúrate de que 'valor' no sea None antes de continuar con las comprobaciones
+    if valor is None:
+        return None
+
+    # Si el valor es un float, convertimos a string
     if isinstance(valor, float):
         valor = str(valor)
-    if isinstance(valor, int):
+    # Si el valor es un int, convertimos a string
+    elif isinstance(valor, int):
         valor = str(valor)
-    if isinstance(valor, bool):
+    # Si el valor es un booleano, convertimos a string
+    elif isinstance(valor, bool):
         valor = str(valor)
+    
+    # Verificación de tipo real
     if re.match(tipoReal, valor):
         return 'real'
+    # Verificación de tipo entero
     elif re.match(tipoInt, valor):
         return 'int'
+    # Verificación de tipo string
     elif re.match(tipoStg, valor):
         return 'stg'
-    elif valor=='TRUE' or valor=='FALSE':
+    # Verificación de tipo booleano
+    elif valor == 'TRUE' or valor == 'FALSE':
         return 'bool'
-    elif valor=='None':
+    # Si el valor es 'None', retornamos None
+    elif valor == 'None':
         return None
     else:
         return None
+
  
 def verificar_ambito(tabla_simbolos, identificador, numero_linea):
     simbolo = tabla_simbolos.Buscar(identificador)
@@ -77,6 +96,11 @@ def verificar_asignacion_arreglo3(tabla_simbolos, identificador, posicion, numer
 
 def valor_identificador(tabla_simbolos, identificador):
     simbolo = tabla_simbolos.Buscar(identificador)
+    if simbolo is None:
+        raise Exception(f"Error: El identificador '{identificador}' no fue encontrado.")
+    # Verificar que 'value' esté presente en el símbolo
+    if 'value' not in simbolo:
+        raise Exception(f"Error: El identificador '{identificador}' no tiene un valor asignado.")
     return simbolo['value']
 
 def verificar_asignacion_arreglo(tabla_simbolos, identificador, tipo, numero_linea):
@@ -95,7 +119,6 @@ def verificar_asignacion_arreglo(tabla_simbolos, identificador, tipo, numero_lin
                 raise Exception(f"Error semántico en la linea {numero_linea}: la variable '{identificador}' no es un número entero positivo.")
             else:
                 valuest = str(simbolo['value'])
-                print(valuest)
                 esNegativo = valuest.find('-')
                 if esNegativo != -1:
                     raise Exception(f"Error semántico en la linea {numero_linea}: la variable '{identificador}' no es un número entero positivo.")
@@ -105,6 +128,5 @@ def verificar_asignacion_arreglo(tabla_simbolos, identificador, tipo, numero_lin
             raise Exception(f"Error semántico en la linea {numero_linea}: la variable '{identificador}' no es un número entero positivo.")
         else:
             esNegati = str(identificador).find("-")
-            print(esNegati)
             if esNegati != -1:
                 raise Exception(f"Error semántico en la linea {numero_linea}: el valor '{identificador}' no es un número entero positivo.")
