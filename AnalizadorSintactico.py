@@ -26,6 +26,7 @@ lista_errores_semanticos = []
 global errores_Sem_Desc
 errores_Sem_Desc = []
 codigo_intermedio = []  # Lista para almacenar las instrucciones IR
+tabla_temporales = {}  # clave: expresión, valor: temporal
 
 global tabla_simbolos
 tabla_simbolos = SymbolTable()
@@ -207,6 +208,16 @@ def nueva_etiqueta():
     global contador_etiquetas
     contador_etiquetas += 1
     return f"L{contador_etiquetas}"
+
+def buscar_temporal(identificador):
+    if tabla_temporales.get(identificador) == None:
+        return identificador
+    else:
+        return tabla_temporales.get(identificador)
+
+def registrar_temporal(identificador, temporal):
+    tabla_temporales[identificador] = temporal
+
         
 def imprimirIT():
     print("\nCódigo Intermedio Generado:")
@@ -239,7 +250,7 @@ def p_declaracion(p):
         f"{temp} = {p[4]}",
         f"{p[2]} = {temp}"
     ]
-
+    registrar_temporal(p[2], temp)
     p[0] = instrucciones
 
 def p_declaracion_funcion(p):
@@ -254,12 +265,13 @@ def p_declaracion_funcion(p):
         except Exception as e:
             errores_Sem_Desc.append(str(e))
 
+    # Código intermedio
     temp = nueva_temporal()
     instrucciones = [
         f"{temp} = {p[4]}",
         f"{p[2]} = {temp}"
     ]
-
+    registrar_temporal(p[2], temp)
     p[0] = instrucciones
 
 
@@ -315,7 +327,7 @@ def p_gate_options(p):
 def p_declaracion_crearArreglo(p):
     '''declaracion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
                    | tipo ID ASIGNACION CA CORCHETE_A ID CORCHETE_B PUNTOCOMA'''
-    global codigo_intermedio
+    
     if tabla_simbolos.declarar_arreglo(p[2], p[1], p[6],'global'):
         errores_Sem_Desc.append(f"Error semántico en la línea {p.lineno(2)-linea}: el arreglo '{p[2]}' ya ha sido declarado")
     else:
@@ -329,6 +341,15 @@ def p_declaracion_crearArreglo(p):
                 verificar_asignacion_arreglo(tabla_simbolos, p[6], 'VALOR', p.lineno(2)-linea)
             except Exception as e:
                 errores_Sem_Desc.append(str(e))
+
+    # Código intermedio para la declaración de arreglo
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[6]}",
+        f"DECLARE_ARRAY {p[2]}, {temp}"
+    ]
+    p[0] = instrucciones
+
                 
 
 def p_declaracion_AsignarArreglo(p):
@@ -356,6 +377,18 @@ def p_declaracion_AsignarArreglo(p):
             tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'global')
         except Exception as e:
             errores_Sem_Desc.append(str(e))
+    
+    # Código intermedio para la asignación en arreglo
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[6]}",
+        f"{p[1]}[{p[3]}] = {temp}"
+    ]
+    
+    registrar_temporal(f"{p[1]}[{p[3]}]", temp)
+    
+    p[0] = instrucciones
+
 
 def p_declaracion_crearArreglo_funcion(p):
     '''declaracion_funcion : tipo ID ASIGNACION CA CORCHETE_A NUMERO CORCHETE_B PUNTOCOMA
@@ -373,6 +406,13 @@ def p_declaracion_crearArreglo_funcion(p):
                 verificar_asignacion_arreglo(tabla_simbolos, p[6], 'VALOR', p.lineno(2)-linea)
             except Exception as e:
                 errores_Sem_Desc.append(str(e))
+    # Código intermedio para la declaración de arreglo
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[6]}",
+        f"DECLARE_ARRAY {p[2]}, {temp}"
+    ]
+    p[0] = instrucciones
 
 def p_declaracion_AsignarArreglo_funcion(p):
     '''declaracion_funcion : ID CORCHETE_A NUMERO CORCHETE_B ASIGNACION expresion PUNTOCOMA
@@ -396,6 +436,15 @@ def p_declaracion_AsignarArreglo_funcion(p):
             tabla_simbolos.valor_arreglo(p[1], p[3], p[6], 'nulo')
         except Exception as e:
             errores_Sem_Desc.append(str(e))
+
+    temp = nueva_temporal()
+    instrucciones = [
+        f"{temp} = {p[6]}",
+        f"{p[1]}[{p[3]}] = {temp}"
+    ]
+    p[0] = instrucciones
+
+    registrar_temporal(f"{p[1]}[{p[3]}]", temp)
 
 # Tipos de datos
 def p_tipo(p):
@@ -644,7 +693,9 @@ def p_si(p):
     else:
         _, izq, op, der = condicion
         cond_temp = nueva_temporal()
-        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]  # Generar código de la condición
+        n_izq = buscar_temporal(izq)
+        n_der = buscar_temporal(der)
+        cond_instr = [f"{cond_temp} = {n_izq} {op} {n_der}"]  # Generar código de la condición
 
     # 2. Generar código intermedio para el bloque del IF
     if len(p) == 6:  # IF sin ELSE
@@ -787,6 +838,8 @@ def p_for_loop(p):
             f"{temp} = {init_data[1]['value']}",
             f"{init_data[1]['id']} = {temp}"
         ]
+        registrar_temporal(init_data[1]['id'], temp)
+        var_init =  init_data[1]['id']
     
     # 2. Procesar la condición
     condicion = p[5]
@@ -798,7 +851,17 @@ def p_for_loop(p):
     else:
         _, izq, op, der = condicion
         cond_temp = nueva_temporal()
-        cond_instr = [f"{cond_temp} = {izq} {op} {der}"]  # Generar código para la condición
+        
+        if (izq == var_init):
+            n_izq = var_init
+        else:
+            n_izq = buscar_temporal(izq)
+        
+        if (der == var_init):
+            n_der = var_init
+        else:
+            n_der = buscar_temporal(der)
+        cond_instr = [f"{cond_temp} = {n_izq} {op} {n_der}"]  # Generar código para la condición
     
     # 3. Procesar la actualización
     update_data = p[7]

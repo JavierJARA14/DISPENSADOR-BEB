@@ -54,6 +54,10 @@ class SymbolTable:
         else:
             return None
         
+    def buscar_tipo(self, name):
+        simbolo = self.Buscar(name)
+        return simbolo['type']
+
     def get_value(self, name):
         variable = self.Buscar(name)
         if variable is not None:
