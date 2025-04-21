@@ -7,6 +7,7 @@ import AnalizadorLexico as AL
 from AnalizadorLexico import limpiar_errores_lex
 from ctokens import reservadas
 from AnalizadorSintactico import tabla_simbolos 
+from AnalizadorSintactico import obtener_codigo_intermedio
 
 
 resultados = []
@@ -57,6 +58,53 @@ class VentanaTokens(Tk):
         # Establecer las dimensiones de la ventana y posicionarla
         self.geometry(f'{ancho}x{alto}+{x}+{y}')
 
+class VentanaTablaSimbolos(Tk):
+    def __init__(self):
+        super().__init__()
+        self.centrar_ventana1(600, 400)
+        self.title("Tabla de Símbolos")
+
+        # Crear Treeview
+        self.tree = ttk.Treeview(self)
+        self.tree["columns"] = ("ID", "Tipo", "Valor", "Alcance")
+
+        # Configurar columnas
+        self.tree.column("#0", width=0, stretch=False)  # columna de índice
+        self.tree.column("ID", anchor='center', width=100)
+        self.tree.column("Tipo", anchor='center', width=100)
+        self.tree.column("Valor", anchor='center', width=100)
+        self.tree.column("Alcance", anchor='center', width=100)
+
+        # Encabezados de columnas
+        self.tree.heading("#0", text="", anchor='w')
+        self.tree.heading("ID", text="ID", anchor='center')
+        self.tree.heading("Tipo", text="Tipo", anchor='center')
+        self.tree.heading("Valor", text="Valor", anchor='center')
+        self.tree.heading("Alcance", text="Alcance", anchor='center')
+
+        # Insertar datos de la tabla de símbolos
+        self.insertar_simbolos()
+
+        # Añadir Treeview a la ventana
+        self.tree.pack(expand=True, fill='both')
+
+    def insertar_simbolos(self):
+        # Aquí deberías obtener los símbolos de la tabla de símbolos
+        simbolos = tabla_simbolos.obtener()  # Implementa esta función en tu archivo de tabla de símbolos
+        for simbolo in simbolos:
+            self.tree.insert("", "end", text="1", values=(simbolo['id'], simbolo['tipo'], simbolo['valor'], simbolo['alcance']))
+
+    def centrar_ventana1(self, ancho, alto):
+        # Obtener las dimensiones de la pantalla
+        pantalla_ancho = self.winfo_screenwidth()
+        pantalla_alto = self.winfo_screenheight()
+
+        # Calcular la posición x e y para centrar la ventana
+        x = (pantalla_ancho - ancho) // 2
+        y = (pantalla_alto - alto) // 2
+
+        # Establecer las dimensiones de la ventana y posicionarla
+        self.geometry(f'{ancho}x{alto}+{x}+{y}')
 
 class Compilador(Tk):
     contadorLinea = 0
@@ -90,7 +138,7 @@ class Compilador(Tk):
         # Frame para los botones
         self.buttons_frame = ttk.Frame(self.main_frame)
         self.buttons_frame.pack(side="top", fill="x")
-
+            
         self.btn_nuevo = ttk.Button(self.buttons_frame, text="Nuevo", command=self.nuevo_archivo)
         self.btn_nuevo.pack(side="left", padx=5)
         self.btn_abrir = ttk.Button(self.buttons_frame, text="Abrir", command=self.abrir_archivo)
@@ -103,7 +151,13 @@ class Compilador(Tk):
         self.btn_tamañoMas.pack(side="left", padx=5)
         self.btn_tamañoMenos = ttk.Button(self.buttons_frame, text="-", command=self.tamañoMenos) 
         self.btn_tamañoMenos.pack(side="left", padx=5)
+        # Nuevo botón para abrir la ventana de texto
+        self.btn_mostrar_codigo_intermedio = ttk.Button(self.buttons_frame, 
+                                                text="Mostrar Código Intermedio", 
+                                                command=self.mostrar_codigo_intermedio)
+        self.btn_mostrar_codigo_intermedio.pack(side="left", padx=5)
 
+                
         # Frame para el editor de código y los números de línea
         self.editor_frame = ttk.Frame(self.main_frame)
         self.editor_frame.pack(expand=True, fill="both")
@@ -126,8 +180,7 @@ class Compilador(Tk):
         self.btn_compilar.pack(side="left", padx=5)
         self.btn_tokens = ttk.Button(self.buttons_compiler_panel, text="Tokens", command=self.Tokens)
         self.btn_tokens.pack(side="left", padx=5)
-        self.btn_limpiar_tabla = ttk.Button(self.buttons_compiler_panel, text="Limpiar TS",command=self.limpiar_tabla)
-        self.btn_limpiar_tabla.pack(side="left",padx=5)
+
         #Mostrar TS
         self.btn_TS = ttk.Button(self.buttons_compiler_panel, text="Mostrar TS",command=self.mostrar_TS)
         self.btn_TS.pack(side="left",padx=5)
@@ -152,6 +205,29 @@ class Compilador(Tk):
     def update_line_numbers_and_highlight(self, event=None):
         self.update_line_numbers()
         self.resaltar_palabras_reservadas()
+
+    def mostrar_codigo_intermedio(self):
+        # Llamamos a la función en AnalizadorSintactico que devuelve el código intermedio
+        from AnalizadorSintactico import obtener_codigo_intermedio  # Importar dentro de la función si es necesario
+        codigo_intermedio = obtener_codigo_intermedio()  # Llamamos a la función para obtener el código intermedio
+
+        # Mostrar el código intermedio en una ventana secundaria no editable
+        self.mostrar_texto(codigo_intermedio)
+
+    def mostrar_texto(self, texto):
+        import AnalizadorSintactico as AS
+        # Crear una ventana secundaria para mostrar el texto
+        ventana_texto = Toplevel(self)  # Crea una nueva ventana (Toplevel)
+        ventana_texto.title("Código Intermedio")  # Título de la ventana
+        ventana_texto.geometry("600x400")  # Puedes ajustar el tamaño de la ventana
+
+        # Usamos un widget 'ScrolledText' para mostrar el texto, lo cual lo hace desplazable
+        texto_widget = scrolledtext.ScrolledText(ventana_texto, wrap=WORD, height=15, width=60, state=DISABLED)
+        texto_widget.pack(expand=True, fill="both")
+        texto_widget.config(state=NORMAL)  # Permite modificar el widget (aunque luego lo dejaremos no editable)
+        texto_widget.insert(END, texto)  # Inserta el texto proporcionado
+        texto_widget.config(state=DISABLED)  # Hace que el widget sea no editable
+        AS.codigo_intermedio = []
 
     def nuevo_archivo(self):
         if self.text_editor.get("1.0", END).strip():
@@ -240,7 +316,9 @@ class Compilador(Tk):
        tabla_simbolos.limpiar()
        
     def mostrar_TS(self):
-       tabla_simbolos.display()
+        # Crear y mostrar la ventana de la tabla de símbolos
+        app2 = VentanaTablaSimbolos()
+        app2.mainloop()
        
     def update_line_numbers(self, event=None):
         # Accede a lista_errores_lexicos a través de una instancia de Compilador
@@ -296,9 +374,11 @@ class Compilador(Tk):
         from AnalizadorSintactico import limpiar_errores
         # Limpia la lista de errores antes de cada compilación
         limpiar_errores_lex()
+        AS.codigo_intermedio = []
         # Limpiar la salida de consola
         self.output_console.delete(1.0, END)
-
+        tabla_simbolos.limpiar()
+        
         # Obtiene todo el código del editor
         codigo = self.text_editor.get("1.0", END)
 
@@ -318,10 +398,9 @@ class Compilador(Tk):
         limpiar_errores()
         global resultadosSintactico
         resultadosSintactico = AS.test_parser(codigo,lin)
-        AS.imprimirIT()
-
-        # Imprimir resultados sintácticos en la consola de Python para depuración
-        print("Resultado del análisis sintáctico:", resultadosSintactico)
+        
+        AS.contador_etiquetas = 0
+        AS.contador_temporales = 0
 
         # Mostrar los errores sintácticos en la consola de salida
         errores_Sinc_Desc = AS.errores_Sinc_Desc
@@ -332,6 +411,15 @@ class Compilador(Tk):
         errores_Sem_Desc = AS.errores_Sem_Desc
         for error in errores_Sem_Desc:
             self.output_console.insert(END, error + "\n")
+            
+        # Habilitar o deshabilitar el botón de código intermedio según haya errores o no
+        if errores_lexicos or errores_Sinc_Desc or errores_Sem_Desc:
+            self.btn_mostrar_codigo_intermedio.config(state="disabled")
+            AS.codigo_intermedio = []
+            messagebox.showerror("Error", "Se han encontrado errores en el código.\nNOTA: No se podrá generar el código intermedio.")
+        else:
+            self.btn_mostrar_codigo_intermedio.config(state="normal")
+
 
 if __name__ == "__main__":
     app = Compilador()
