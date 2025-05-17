@@ -287,6 +287,11 @@ def p_declaracionsintipo(p):
         verificar_asignacion(tabla_simbolos, p[1], str(p[3]), p.lineno(2)-linea)
         verificar_ambito(tabla_simbolos, p[1], p.lineno(2)-linea)
 
+        # Actualizar el valor en la tabla de símbolos
+        simbolo = tabla_simbolos.Buscar(p[1])
+        if simbolo is not None:
+            simbolo['value'] = p[3]
+
         temp = nueva_temporal()
         instrucciones = [
             f"{temp} = {p[3]}",
@@ -522,7 +527,6 @@ def p_expresion_suma(p):
         instruccion = f"{operando1} + {operando2}"
         p[0] = instruccion
 
-
 def p_expresion_resta(p):
     'expresion : expresion RESTA expresion'
     operando1 = p[1]
@@ -669,7 +673,25 @@ def p_expresion(p):
               | FALSE
               | posicion
     """
-    p[0] = p[1]
+    if len(p) == 2:
+        p[0] = p[1]
+    elif len(p) == 4:
+        # ( expresion )
+        p[0] = p[2]
+    elif len(p) == 5:
+        # Acceso a arreglo: arr[2] o arr[i]
+        nombre_arreglo = p[1]
+        indice = p[3]
+        # Si el índice es un ID, obtener su valor
+        if isinstance(indice, str) and indice in tabla_simbolos.table:
+            indice_valor = tabla_simbolos.Buscar(indice).get('value', None)
+        else:
+            indice_valor = indice
+        simbolo = tabla_simbolos.Buscar(nombre_arreglo)
+        if simbolo and 'value' in simbolo and isinstance(simbolo['value'], dict):
+            p[0] = simbolo['value'].get(indice_valor, None)
+        else:
+            p[0] = None
     
 def p_expresionId(p):
     """
