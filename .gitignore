@@ -2,3 +2,6 @@ __pycache__/
 .vscode/
 parser.out
 parsetab.py
+ProyectoArduino/
+.env
+output.c

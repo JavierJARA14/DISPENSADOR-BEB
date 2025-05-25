@@ -309,7 +309,7 @@ def p_declaracion_crearObj(p):
 
 def p_gate_declaracion(p):
     """
-    gate_declaracion  : GATE SETGATE CADENA PUNTOCOMA         
+    gate_declaracion  : GATE SETGATE NUMERO PUNTOCOMA         
     """
     global codigo_intermedio
 

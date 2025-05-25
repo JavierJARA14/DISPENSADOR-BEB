@@ -369,57 +369,123 @@ class Compilador(Tk):
             start_idx = word_end_idx
 
     def compilar(self):
-        lin = self.text_editor.get(1.0, "end-1c").count("\n")+1
+        lin = self.text_editor.get(1.0, "end-1c").count("\n") + 1
         import AnalizadorSintactico as AS
         from AnalizadorSintactico import limpiar_errores
-        # Limpia la lista de errores antes de cada compilación
+        import os
+        import shutil
+        import subprocess
+        import glob
+
         limpiar_errores_lex()
         AS.codigo_intermedio = []
-        # Limpiar la salida de consola
         self.output_console.delete(1.0, END)
         tabla_simbolos.limpiar()
-        
-        # Obtiene todo el código del editor
+
         codigo = self.text_editor.get("1.0", END)
 
-        # Realiza la compilación utilizando el analizador léxico
         global resultados
         resultados = AL.analisis(codigo)
 
-        # Llama a update_line_numbers y pasa la lista de errores léxicos
         self.update_line_numbers()
 
-        # Mostrar los errores léxicos en la consola de salida
         errores_lexicos = AL.errores_Desc
         for error in errores_lexicos:
             self.output_console.insert(END, error + "\n")
 
-        # Análisis Sintáctico
         limpiar_errores()
         global resultadosSintactico
-        resultadosSintactico = AS.test_parser(codigo,lin)
-        
+        resultadosSintactico = AS.test_parser(codigo, lin)
+
         AS.contador_etiquetas = 0
         AS.contador_temporales = 0
 
-        # Mostrar los errores sintácticos en la consola de salida
         errores_Sinc_Desc = AS.errores_Sinc_Desc
-        for error in errores_Sinc_Desc:
+        errores_Sem_Desc = AS.errores_Sem_Desc
+
+        for error in errores_Sinc_Desc + errores_Sem_Desc:
             self.output_console.insert(END, error + "\n")
 
-        # Mostrar los errores Semanticos en la consola de salida
-        errores_Sem_Desc = AS.errores_Sem_Desc
-        for error in errores_Sem_Desc:
-            self.output_console.insert(END, error + "\n")
-            
-        # Habilitar o deshabilitar el botón de código intermedio según haya errores o no
         if errores_lexicos or errores_Sinc_Desc or errores_Sem_Desc:
             self.btn_mostrar_codigo_intermedio.config(state="disabled")
             AS.codigo_intermedio = []
             messagebox.showerror("Error", "Se han encontrado errores en el código.\nNOTA: No se podrá generar el código intermedio.")
+            return
         else:
             self.btn_mostrar_codigo_intermedio.config(state="normal")
 
+        from GeneradorCodigoObjeto import GeneradorCodigoObjeto
+        generador = GeneradorCodigoObjeto(codigo)
+        codigo_c = generador.generar()
+
+        # Define ruta base relativa al directorio actual
+        proyecto_path = os.path.join(os.getcwd(), "ProyectoArduino")
+        if not os.path.exists(proyecto_path):
+            os.makedirs(proyecto_path)
+
+        # Guarda output.c fuera de ProyectoArduino (por ejemplo en el directorio padre)
+        output_c_path = os.path.join(os.getcwd(), "output.c")
+        with open(output_c_path, "w") as f:
+            f.write(codigo_c)
+
+        # Copia el contenido de output.c en ProyectoArduino.ino
+        ruta_sketch = os.path.join(proyecto_path, "ProyectoArduino.ino")
+        with open(output_c_path, "r") as f:
+            contenido = f.read()
+        with open(ruta_sketch, "w") as f:
+            f.write(contenido)
+
+
+        try:
+            import os
+            from dotenv import load_dotenv
+            load_dotenv()  # carga las variables del .env
+            arduino_cli_path = os.getenv("ARDUINO_CLI_PATH")
+            if not arduino_cli_path:
+                raise ValueError("No se encontró ARDUINO_CLI_PATH en las variables de entorno.")
+
+            # Crea carpeta build dentro de ProyectoArduino para la compilación
+            build_path = os.path.join(proyecto_path, "build")
+            if not os.path.exists(build_path):
+                os.makedirs(build_path)
+
+            # Ejecuta compilación con build path relativo
+            result = subprocess.run(
+                [
+                    arduino_cli_path,
+                    "compile",
+                    "--fqbn", "arduino:avr:uno",
+                    "--build-path", build_path,
+                    proyecto_path
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+
+            if result.returncode == 0:
+                self.output_console.insert(END, "✅ Compilación exitosa con Arduino CLI.\n")
+
+                # Busca el archivo .hex generado dentro de build
+                hex_files = glob.glob(os.path.join(build_path, "*.hex"))
+                if hex_files:
+                    ruta_hex_origen = hex_files[0]
+                    ruta_hex_destino = os.path.join(proyecto_path, "ProyectoArduino.hex")
+                    shutil.copy(ruta_hex_origen, ruta_hex_destino)
+                    self.output_console.insert(END, f"📁 Archivo .hex copiado a: {ruta_hex_destino}\n")
+                    messagebox.showinfo("Éxito", f"Archivo .hex guardado en:\n{ruta_hex_destino}")
+                else:
+                    self.output_console.insert(END, "⚠️ No se encontró el archivo .hex generado en build.\n")
+                    messagebox.showwarning("Advertencia", "Compilación exitosa, pero no se encontró el archivo .hex en la carpeta build.")
+
+            else:
+                self.output_console.insert(END, result.stdout + "\n" + result.stderr)
+                messagebox.showerror("Error de compilación", "Arduino CLI no pudo compilar el proyecto. Verifica errores en consola.")
+
+        except FileNotFoundError:
+            messagebox.showerror("Arduino CLI no encontrado", "Verifica que 'arduino-cli' esté instalado y agregado al PATH del sistema.")
+
+        messagebox.showinfo("Éxito", f"Código C generado correctamente en '{output_c_path}'.\nProyecto Arduino preparado en:\n{ruta_sketch}")
 
 if __name__ == "__main__":
     app = Compilador()
