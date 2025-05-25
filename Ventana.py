@@ -464,7 +464,7 @@ class Compilador(Tk):
             )
 
             if result.returncode == 0:
-                self.output_console.insert(END, "✅ Compilación exitosa con Arduino CLI.\n")
+                self.output_console.insert(END, "Compilación exitosa con Arduino CLI.\n")
 
                 # Busca el archivo .hex generado dentro de build
                 hex_files = glob.glob(os.path.join(build_path, "*.hex"))
@@ -472,10 +472,10 @@ class Compilador(Tk):
                     ruta_hex_origen = hex_files[0]
                     ruta_hex_destino = os.path.join(proyecto_path, "ProyectoArduino.hex")
                     shutil.copy(ruta_hex_origen, ruta_hex_destino)
-                    self.output_console.insert(END, f"📁 Archivo .hex copiado a: {ruta_hex_destino}\n")
+                    self.output_console.insert(END, f"Archivo .hex copiado a: {ruta_hex_destino}\n")
                     messagebox.showinfo("Éxito", f"Archivo .hex guardado en:\n{ruta_hex_destino}")
                 else:
-                    self.output_console.insert(END, "⚠️ No se encontró el archivo .hex generado en build.\n")
+                    self.output_console.insert(END, "No se encontró el archivo .hex generado en build.\n")
                     messagebox.showwarning("Advertencia", "Compilación exitosa, pero no se encontró el archivo .hex en la carpeta build.")
 
             else:
