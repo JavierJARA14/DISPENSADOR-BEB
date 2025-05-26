@@ -67,15 +67,17 @@ class GeneradorCodigoObjeto:
         if linea == "GATE.BE_OPEN;":
             if self.estado_gate != "HIGH":
                 destino.append("  digitalWrite(GATE_PIN, HIGH);")
+                destino.append("  delay(500);")
                 self.estado_gate = "HIGH"
             return
 
-        # GATE BE_CLOSE
         if linea == "GATE.BE_CLOSE;":
             if self.estado_gate != "LOW":
                 destino.append("  digitalWrite(GATE_PIN, LOW);")
+                destino.append("  delay(500);")
                 self.estado_gate = "LOW"
             return
+
 
         # Ignorar BEGIN{ y }END
         if linea.startswith("BEGIN{") or linea == "}END":
