@@ -64,11 +64,18 @@ class GeneradorCodigoObjeto:
             return
         
         # Llamada tipo SMS(#TEXTO#); → convierte en string
-        if match := re.match(r"SMS\s*\(\s*#(\w+)#\s*\)\s*;", linea):
-            texto = match.group(1)
-            destino.append(f'  Serial.println("{texto}");  // SMS simulado con etiquetas')
+        if match := re.match(r'SMS\s*\(\s*(.+)\)\s*;', linea):
+            expr = match.group(1)
+            partes = [p.strip() for p in expr.split('+')]
+            salida = '"'
+            for parte in partes:
+                if parte.startswith('#') and parte.endswith('#'):
+                    salida += parte.strip('#')
+                else:
+                    salida += f'" + String({parte}) + "'
+            salida += '"'
+            destino.append(f"  Serial.println({salida});")
             return
-
 
         # GATE BE_OPEN
         if linea == "GATE.BE_OPEN;":
@@ -151,6 +158,17 @@ class GeneradorCodigoObjeto:
                 destino.append(f"  {nombre} = {valor};")
             return
 
+        # Declaración de variable tipo stg (string personalizada)
+        if match := re.match(r"stg\s+(\w+)\s*=\s*#([^#]+)#\s*;", linea):
+            nombre, valor = match.groups()
+            if nombre not in self.vars_declaradas:
+                destino.append(f'  String {nombre} = "{valor}";')
+                self.vars_declaradas.add(nombre)
+            else:
+                destino.append(f'  {nombre} = "{valor}";')
+            return
+
+        
         # Declaración simple sin asignación (ej: int x;)
         if match := re.match(r"(int|bool)\s+(\w+)\s*;", linea):
             tipo, nombre = match.groups()

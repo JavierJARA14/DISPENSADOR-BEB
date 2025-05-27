@@ -27,6 +27,8 @@ global lista_errores_semanticos
 lista_errores_semanticos = []
 global errores_Sem_Desc
 errores_Sem_Desc = []
+global mensajes_consola
+mensajes_consola = []
 codigo_intermedio = []  # Lista para almacenar las instrucciones IR
 tabla_temporales = {}  # clave: expresión, valor: temporal
 
@@ -136,19 +138,36 @@ def p_listaExpresiones(p):
     else: 
         p[0]=p[1] + [p[3]]
 #---------------------Imprimir cadenas----------------
+def evaluar_expresiones_sms(lista, linea):
+    resultado = ""
+    for elemento in lista:
+        if isinstance(elemento, str) and (elemento.startswith('#') and elemento.endswith('#')):
+            # Es una cadena literal
+            resultado += elemento.strip('#')
+        else:
+            simbolo = tabla_simbolos.Buscar(elemento)
+            if simbolo:
+                valor = simbolo.get('value', None)
+                if isinstance(valor, str) and valor.startswith('#') and valor.endswith('#'):
+                    valor = valor.strip('#')  # Limpia si también viene con #
+                resultado += "null" if valor is None else str(valor)
+            else:
+                errores_Sem_Desc.append(
+                    f"Error semántico en la línea {linea}: Variable '{elemento}' no declarada en SMS()."
+                )
+                resultado += f"<undef:{elemento}>"
+    return resultado
+
 def p_imprimirPantalla(p):
     """
-    imprimir : SMS PARENTESIS_A CADENA PARENTESIS_B PUNTOCOMA            
+    imprimir : SMS PARENTESIS_A lista_expresiones PARENTESIS_B PUNTOCOMA
     """
-    mensajes_consola.append(str(p[3]))
-    if len(p)==8:
-        for expresion in p[4]:  # p[4] contiene la lista de expresiones
-         print(expresion)
-        p[0]="Imprimir",p[4]
-        print(p[3])
-    else:
-        print(p[3])
-        p[0]="imprimir",p[3]    
+    linea_sms = p.lineno(1) - linea
+    resultado = evaluar_expresiones_sms(p[3], linea_sms)
+    
+    mensajes_consola.append(resultado)
+    
+    p[0] = [f'CALL PRINT "{resultado}"']
 
 #-----------------------------------------------------------------------#
 def p_imprimirPantallaError(p):
