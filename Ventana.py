@@ -414,8 +414,8 @@ class Compilador(Tk):
             return
         else:
             self.btn_mostrar_codigo_intermedio.config(state="normal")
-            for mensaje in mensajes_consola:
-                self.output_console.insert(END, mensaje + "\n")
+            # for mensaje in mensajes_consola:
+            #     self.output_console.insert(END, mensaje + "\n")
 
         from GeneradorCodigoObjeto import GeneradorCodigoObjeto
         generador = GeneradorCodigoObjeto(codigo)
