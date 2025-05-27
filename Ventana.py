@@ -113,7 +113,7 @@ class Compilador(Tk):
         super().__init__()
         self.centrar_ventana(800, 600)
         limpiar_errores_lex()
-        self.title("Compilador LAUSTISC")
+        self.title("GATE-X Compiler")
         self.create_widgets()
         self.filename = None  # Variable para almacenar el nombre del archivo actual
 
@@ -402,6 +402,7 @@ class Compilador(Tk):
 
         errores_Sinc_Desc = AS.errores_Sinc_Desc
         errores_Sem_Desc = AS.errores_Sem_Desc
+        mensajes_consola = AS.mensajes_consola
 
         for error in errores_Sinc_Desc + errores_Sem_Desc:
             self.output_console.insert(END, error + "\n")
@@ -413,6 +414,8 @@ class Compilador(Tk):
             return
         else:
             self.btn_mostrar_codigo_intermedio.config(state="normal")
+            for mensaje in mensajes_consola:
+                self.output_console.insert(END, mensaje + "\n")
 
         from GeneradorCodigoObjeto import GeneradorCodigoObjeto
         generador = GeneradorCodigoObjeto(codigo)

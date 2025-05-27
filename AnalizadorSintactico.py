@@ -11,6 +11,8 @@ def limpiar_errores():
     lista_errores_sintacticos = []
     global errores_Sinc_Desc
     errores_Sinc_Desc = []
+    global mensajes_consola
+    mensajes_consola = []
     global lista_errores_semanticos
     lista_errores_semanticos = []
     global errores_Sem_Desc
@@ -136,8 +138,9 @@ def p_listaExpresiones(p):
 #---------------------Imprimir cadenas----------------
 def p_imprimirPantalla(p):
     """
-    imprimir : SMS PARENTESIS_A lista_expresiones PARENTESIS_B PUNTOCOMA            
+    imprimir : SMS PARENTESIS_A CADENA PARENTESIS_B PUNTOCOMA            
     """
+    mensajes_consola.append(str(p[3]))
     if len(p)==8:
         for expresion in p[4]:  # p[4] contiene la lista de expresiones
          print(expresion)
@@ -145,7 +148,7 @@ def p_imprimirPantalla(p):
         print(p[3])
     else:
         print(p[3])
-        p[0]="imprimir",p[3]
+        p[0]="imprimir",p[3]    
 
 #-----------------------------------------------------------------------#
 def p_imprimirPantallaError(p):

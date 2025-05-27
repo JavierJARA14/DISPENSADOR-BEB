@@ -62,12 +62,19 @@ class GeneradorCodigoObjeto:
             except Exception:
                 destino.append(f"  // Error al interpretar SETGATE")
             return
+        
+        # Llamada tipo SMS(#TEXTO#); → convierte en string
+        if match := re.match(r"SMS\s*\(\s*#(\w+)#\s*\)\s*;", linea):
+            texto = match.group(1)
+            destino.append(f'  Serial.println("{texto}");  // SMS simulado con etiquetas')
+            return
+
 
         # GATE BE_OPEN
         if linea == "GATE.BE_OPEN;":
             if self.estado_gate != "HIGH":
                 destino.append("  digitalWrite(GATE_PIN, HIGH);")
-                destino.append("  delay(500);")
+                destino.append("  delay(1000);")
                 self.estado_gate = "HIGH"
             return
 
@@ -117,10 +124,21 @@ class GeneradorCodigoObjeto:
             destino.append(f"  {var}[{index}] = {value.strip()};")
             return
 
-        # Control de flujo IF, WHILE, FOR
-        if linea.startswith("IF(") or linea.startswith("WHILE(") or linea.startswith("FOR("):
+        # Control de flujo IF, WHILE, FOR con apertura de bloque
+        if re.match(r"(IF|WHILE|FOR)\s*\(.\)\s{", linea):
             linea = linea.replace("IF", "if").replace("WHILE", "while").replace("FOR", "for")
-            destino.append(f"  {linea}")
+            linea = linea.strip()  # elimina espacios
+            if linea.endswith("{"):
+                linea = linea[:-1].strip()  # elimina solo el último {
+            destino.append(f"  {linea} {{")
+            return
+
+        if linea == "}":
+            if self.en_funcion:
+                self.funciones.append("}")
+                self.en_funcion = False
+            else:
+                destino.append("  }")
             return
 
         # Declaración de variable con asignación
