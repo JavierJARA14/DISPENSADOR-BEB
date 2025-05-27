@@ -90,6 +90,7 @@ def p_lista_declaraciones(p):
                         | llamadafunc
                         | imprimir
                         | gate_instruccion
+                        | wait_declaracion
     """
     if len(p) == 3:
         izquierda = list(p[1]) if p[1] is not None else []
@@ -114,6 +115,7 @@ def p_lista_declaraciones_funciones(p):
                         | llamadafunc
                         | imprimir
                         | gate_instruccion
+                        | wait_declaracion
     """
     if len(p) == 3:
         izquierda = p[1] if p[1] is not None else []
@@ -224,6 +226,17 @@ def p_imprimirPantallaError5(p):
                              "\nSe espera SMS PARENTESIS_A lista_expresiones PARENTESIS_B PUNTOCOMA"+
                              "\n          ^^^"+
                              "\nPruebe con: SMS "+str(p[1])+str(p[2])+str(p[3])+str(p[4]))
+
+def p_wait_declaracion(p):
+    'wait_declaracion : WAIT PARENTESIS_A NUMERO PARENTESIS_B PUNTOCOMA'
+    valor = int(p[3])
+
+    if valor <= 0:
+        errores_Sinc_Desc.append(
+            f"Error: WAIT con valor no válido ({valor}). Debe ser > 0. Línea {p.lineno(1) - linea}"
+        )
+    else:
+        p[0] = [f"  delay({valor});"]
 
 def nueva_temporal():
     global contador_temporales

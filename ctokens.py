@@ -49,6 +49,7 @@ reservadas = [
     'WHILE',
     'FOR',
     'IF',
+    'WAIT',
     'ELSE',
     'RETURN',
     'DESTROY', 

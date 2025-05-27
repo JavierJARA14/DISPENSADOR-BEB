@@ -10,13 +10,16 @@ class GeneradorCodigoObjeto:
         self.vars_declaradas = set()  # Evita declarar variables duplicadas
         self.estado_gate = None  # Estado actual del gate (HIGH o LOW)
         self.advertencias = []  # Para posibles mensajes de error o warning
+        self.usa_serial = False
 
     def generar(self):
         self._agregar_encabezado()
 
         self.output.append("void setup() {")
         self.output.append("  pinMode(GATE_PIN, OUTPUT);")
+        self.output.append("Serial.begin(9600);") # Inicializa la comunicación serial si se usa SMS
         self.output.append("}")
+
 
         self.output.append("void loop() {")
 
@@ -63,8 +66,19 @@ class GeneradorCodigoObjeto:
                 destino.append(f"  // Error al interpretar SETGATE")
             return
         
+        # WAIT(n); → Traducido a delay(n);
+        if match := re.match(r"WAIT\s*\(\s*(\d+)\s*\)\s*;", linea):
+            valor = int(match.group(1))
+            if valor <= 0:
+                destino.append(f"  // Error: WAIT con valor no válido ({valor})")
+            else:
+                destino.append(f"  delay({valor});")
+            return
+
+        
         # Llamada tipo SMS(#TEXTO#); → convierte en string
         if match := re.match(r'SMS\s*\(\s*(.+)\)\s*;', linea):
+            self.usa_serial = True
             expr = match.group(1)
             partes = [p.strip() for p in expr.split('+')]
             salida = '"'
@@ -81,14 +95,12 @@ class GeneradorCodigoObjeto:
         if linea == "GATE.BE_OPEN;":
             if self.estado_gate != "HIGH":
                 destino.append("  digitalWrite(GATE_PIN, HIGH);")
-                destino.append("  delay(1000);")
                 self.estado_gate = "HIGH"
             return
 
         if linea == "GATE.BE_CLOSE;":
             if self.estado_gate != "LOW":
                 destino.append("  digitalWrite(GATE_PIN, LOW);")
-                destino.append("  delay(500);")
                 self.estado_gate = "LOW"
             return
 
@@ -132,12 +144,24 @@ class GeneradorCodigoObjeto:
             return
 
         # Control de flujo IF, WHILE, FOR con apertura de bloque
-        if re.match(r"(IF|WHILE|FOR)\s*\(.\)\s{", linea):
+        if re.match(r"(IF|WHILE|FOR)\s*\(.*\)\s*{", linea):
             linea = linea.replace("IF", "if").replace("WHILE", "while").replace("FOR", "for")
-            linea = linea.strip()  # elimina espacios
+            linea = linea.strip()
             if linea.endswith("{"):
-                linea = linea[:-1].strip()  # elimina solo el último {
+                linea = linea[:-1].strip()
             destino.append(f"  {linea} {{")
+            return
+
+        # ELSE con bloque
+        
+        # Manejar patrón especial: } ELSE {
+        if re.match(r"^\}\s*ELSE\s*\{\s*$", linea):
+            destino.append("  } else {")
+            return
+
+        
+        if re.match(r"^\s*ELSE\s*{\s*$", linea):
+            destino.append("  else {")
             return
 
         if linea == "}":
@@ -147,7 +171,7 @@ class GeneradorCodigoObjeto:
             else:
                 destino.append("  }")
             return
-
+        
         # Declaración de variable con asignación
         if match := re.match(r"(int|bool)\s+(\w+)\s*=\s*(.*);", linea):
             tipo, nombre, valor = match.groups()

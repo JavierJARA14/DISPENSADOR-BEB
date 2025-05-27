@@ -75,6 +75,7 @@ tokens = [
     'WHILE',
     'FOR',
     'IF',
+    'WAIT',
     'ELSE',
     'RETURN',
     'DESTROY', 
@@ -156,6 +157,11 @@ def t_SETGATE(t):
 def t_SI(t):
     r'IF'
     t.type = 'IF'
+    return t
+
+def t_WAIT(t):
+    r'WAIT'
+    t.type = 'WAIT'
     return t
 
 # Identificadores no válidos
